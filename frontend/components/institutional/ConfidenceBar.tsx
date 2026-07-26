@@ -1,3 +1,5 @@
+import { LearnButton } from "@/components/academy/LearnButton";
+
 interface ConfidenceBarProps {
   value: number;
 }
@@ -6,8 +8,11 @@ export function ConfidenceBar({ value }: ConfidenceBarProps) {
   const safeValue = Math.min(100, Math.max(0, value));
   return (
     <div>
-      <div className="mb-1.5 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.1em] text-terminal-muted">
-        <span>Confiança do regime</span>
+      <div className="mb-1.5 flex items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-[0.1em] text-terminal-muted">
+        <span className="flex items-center gap-1.5">
+          Confiança do regime
+          <LearnButton indicatorLabel="Confiança do regime" />
+        </span>
         <span className="text-terminal-accent">{safeValue.toFixed(1)}%</span>
       </div>
       <div

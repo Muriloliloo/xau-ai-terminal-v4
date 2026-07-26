@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { ErrorState } from "@/components/layout/ErrorState";
+import { EmptyState } from "@/components/layout/EmptyState";
 import { Header } from "@/components/layout/Header";
 import { deleteSnapshot, getSnapshot, getSnapshots } from "@/lib/api";
 import {
@@ -98,14 +99,11 @@ export function SnapshotsWorkspace() {
       {loading && snapshots === null ? (
         <div className="loading-shimmer h-56 rounded-lg" />
       ) : snapshots?.length === 0 ? (
-        <div className="grid min-h-64 place-items-center rounded-lg border border-dashed border-terminal-border bg-terminal-card/50 p-6 text-center">
-          <div>
-            <p className="text-sm font-semibold">Nenhum snapshot salvo</p>
-            <p className="mt-2 text-xs text-terminal-muted">
-              Execute uma análise no dashboard para criar o primeiro registro automático.
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          icon="◷"
+          title="Nenhum snapshot salvo"
+          description="Execute uma análise no Dashboard para criar o primeiro registro automático."
+        />
       ) : (
         <div className="overflow-x-auto rounded-lg border border-terminal-border bg-terminal-card">
           <table className="w-full min-w-[980px] text-left text-xs">

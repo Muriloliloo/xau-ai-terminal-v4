@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { Dashboard } from "@/components/institutional/Dashboard";
+import { EmptyState } from "@/components/layout/EmptyState";
 import { ErrorState } from "@/components/layout/ErrorState";
 import { Header } from "@/components/layout/Header";
 import { ReplayComparison } from "@/components/replay/ReplayComparison";
@@ -51,15 +52,11 @@ export function MarketReplayWorkspace() {
           </div>
         </div>
       ) : snapshots.length === 0 ? (
-        <div className="grid min-h-72 place-items-center rounded-lg border border-dashed border-terminal-border bg-terminal-card/50 p-6 text-center">
-          <div>
-            <p className="text-sm font-semibold">Nenhum snapshot disponível</p>
-            <p className="mt-2 text-xs leading-5 text-terminal-muted">
-              Execute uma análise no Dashboard para criar o primeiro ponto da
-              timeline.
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          icon="▶"
+          title="Nenhum snapshot disponível"
+          description="Execute uma análise no Dashboard para criar o primeiro ponto da timeline."
+        />
       ) : (
         <>
           <ReplayTimeline

@@ -20,8 +20,13 @@ export interface ProviderMetadata {
   version: string;
   type: OptionProviderType;
   lastUpdated: string | null;
+  lastRefreshAt: string | null;
   origin: string;
   status: ProviderStatus;
+  readDurationMs: number | null;
+  strikeCount: number;
+  optionCount: number;
+  fallbackUsed: boolean;
 }
 
 export interface ProviderLoadOptions {

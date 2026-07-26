@@ -1,6 +1,7 @@
 "use client";
 
 import { ErrorState } from "@/components/layout/ErrorState";
+import { EmptyState } from "@/components/layout/EmptyState";
 import { Header } from "@/components/layout/Header";
 import { getHistory } from "@/lib/api";
 import { formatNumber, formatPercent, formatTimestamp } from "@/lib/formatters";
@@ -22,14 +23,11 @@ export function HistoryWorkspace() {
       {records === null ? (
         <div className="loading-shimmer h-56 rounded-lg" />
       ) : records.length === 0 ? (
-        <div className="grid min-h-64 place-items-center rounded-lg border border-dashed border-terminal-border bg-terminal-card/50 p-6 text-center">
-          <div>
-            <p className="text-sm font-semibold">Nenhum registro legado</p>
-            <p className="mt-2 max-w-sm text-xs leading-5 text-terminal-muted">
-              Use a página Snapshots para consultar as análises completas persistidas.
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          icon="◫"
+          title="Nenhum registro legado"
+          description="Use a página Snapshots para consultar as análises completas persistidas."
+        />
       ) : (
         <div className="overflow-x-auto rounded-lg border border-terminal-border bg-terminal-card">
           <table className="w-full min-w-[820px] text-left text-xs">

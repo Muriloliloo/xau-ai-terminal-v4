@@ -1,3 +1,4 @@
+import { LearnButton } from "@/components/academy/LearnButton";
 import { StatusBadge } from "@/components/cards/StatusBadge";
 import { formatNumber, formatPercent } from "@/lib/formatters";
 import {
@@ -32,10 +33,13 @@ function SummaryMetric({
 }: SummaryMetricProps) {
   return (
     <div className="min-w-0 rounded-md border border-terminal-border bg-terminal-panel px-3 py-2.5">
-      <p className="flex items-center gap-1.5 truncate text-[9px] uppercase tracking-[0.12em] text-terminal-muted">
-        <span aria-hidden>{icon}</span>
-        {label}
-      </p>
+      <div className="flex items-center justify-between gap-1">
+        <p className="flex min-w-0 items-center gap-1.5 truncate text-[9px] uppercase tracking-[0.12em] text-terminal-muted">
+          <span aria-hidden>{icon}</span>
+          {label}
+        </p>
+        <LearnButton indicatorLabel={label} />
+      </div>
       <p
         className={`mt-1.5 truncate font-mono text-xs font-semibold ${toneClasses[tone]}`}
         title={value}
@@ -82,6 +86,7 @@ export function AiMarketSummary({ data }: AiMarketSummaryProps) {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <LearnButton indicatorLabel="Market Regime" showLabel />
           <StatusBadge label={summary.marketRegime} tone={badgeTone} />
           <span
             className={`inline-flex items-center gap-2 rounded-full border border-terminal-border bg-terminal-panel px-3 py-1 font-mono text-[10px] ${toneClasses[summary.conviction.tone]}`}

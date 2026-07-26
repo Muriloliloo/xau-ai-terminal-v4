@@ -38,7 +38,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -53,6 +54,11 @@ button:disabled {
 button:focus-visible,
 a:focus-visible,
 input:focus-visible {
+  outline: 2px solid #5f9cff;
+  outline-offset: 2px;
+}
+
+select:focus-visible {
   outline: 2px solid #5f9cff;
   outline-offset: 2px;
 }
@@ -94,6 +100,104 @@ input:focus-visible {
   animation: shimmer 1.5s infinite linear;
 }
 
+.smart-tooltip-content {
+  visibility: hidden;
+  transform: translateY(-2px) scale(0.98);
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease,
+    visibility 150ms ease;
+}
+
+.smart-tooltip:hover .smart-tooltip-content,
+.smart-tooltip:focus-within .smart-tooltip-content {
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.workspace-fade {
+  animation: workspace-fade 180ms ease-out;
+}
+
+.workspace-scale {
+  animation: workspace-scale 180ms ease-out;
+}
+
+.workspace-slide {
+  animation: workspace-slide 200ms ease-out;
+}
+
+@keyframes workspace-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes workspace-scale {
+  from {
+    transform: scale(0.985);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes workspace-slide {
+  from {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+[data-workspace-mode="compact"] main {
+  --workspace-gap: 0.5rem;
+}
+
+[data-workspace-mode="compact"] .workspace-card {
+  height: 94px;
+  padding: 0.625rem 0.75rem;
+}
+
+[data-workspace-mode="compact"] main .space-y-3 {
+  row-gap: var(--workspace-gap);
+}
+
+[data-theme="obsidian"] body {
+  background:
+    radial-gradient(circle at 85% 5%, rgb(95 156 255 / 6%), transparent 24rem),
+    #02060c;
+}
+
+[data-theme="obsidian"] .bg-terminal-card {
+  background-color: #08111d;
+}
+
+[data-theme="obsidian"] .bg-terminal-sidebar {
+  background-color: #040a12;
+}
+
+[data-animations="disabled"] *,
+[data-animations="disabled"] *::before,
+[data-animations="disabled"] *::after {
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+}
+
 @keyframes shimmer {
   to {
     background-position-x: -200%;
@@ -115,7 +219,23 @@ input:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .replay-fade {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media (max-width: 639px) {
+  .smart-tooltip-content {
+    position: fixed;
+    right: 0.75rem;
+    left: 0.75rem;
+    top: auto;
+    bottom: 0.75rem;
+    width: auto;
   }
 }

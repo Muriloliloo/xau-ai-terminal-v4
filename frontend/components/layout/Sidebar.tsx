@@ -36,7 +36,10 @@ export function Sidebar() {
           </div>
         </div>
 
-        <nav aria-label="Navegação principal" className="flex-1 space-y-1 px-3 py-4">
+        <nav
+          aria-label="Navegação principal"
+          className="flex-1 space-y-1 overflow-y-auto px-3 py-4"
+        >
           {NAVIGATION.map((item) => {
             const active = isActive(pathname, item.href);
             return (

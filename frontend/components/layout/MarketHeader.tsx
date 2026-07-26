@@ -1,4 +1,5 @@
 import { StatusBadge } from "@/components/cards/StatusBadge";
+import { FreshnessIndicator } from "@/components/layout/FreshnessIndicator";
 import { ASSET_SYMBOL } from "@/lib/constants";
 import {
   formatNumber,
@@ -78,6 +79,7 @@ export function MarketHeader({
             label={statusLabel}
             tone={statusTone}
           />
+          <FreshnessIndicator generatedAt={data?.generated_at} />
           {data?.source_mode === "demo" ? (
             <StatusBadge label="Dados demonstrativos" tone="warning" />
           ) : null}

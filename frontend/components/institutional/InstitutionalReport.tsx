@@ -1,3 +1,4 @@
+import { LearnButton } from "@/components/academy/LearnButton";
 import { StatusBadge } from "@/components/cards/StatusBadge";
 import { ConfidenceBar } from "@/components/institutional/ConfidenceBar";
 import { formatCompact, formatNumber, formatPercent } from "@/lib/formatters";
@@ -18,6 +19,7 @@ export function InstitutionalReport({ data }: { data: AnalysisResponse }) {
           <h2 className="mt-0.5 text-sm font-semibold">{data.report.title}</h2>
         </div>
         <div className="flex items-center gap-2">
+          <LearnButton indicatorLabel="Dealer Bias" showLabel />
           <StatusBadge label={data.dealer_report.intensity} tone="neutral" />
           <StatusBadge label={data.dealer_report.regime} tone={regimeTone} />
         </div>
@@ -59,17 +61,23 @@ export function InstitutionalReport({ data }: { data: AnalysisResponse }) {
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-md border border-terminal-border bg-terminal-panel p-2.5">
-              <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-terminal-muted">
-                Rompimento
-              </p>
+              <div className="flex items-center justify-between gap-1">
+                <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-terminal-muted">
+                  Rompimento
+                </p>
+                <LearnButton indicatorLabel="Rompimento" />
+              </div>
               <p className="mt-1 text-xs font-semibold text-terminal-negative">
                 {data.dealer_report.breakout_risk}
               </p>
             </div>
             <div className="rounded-md border border-terminal-border bg-terminal-panel p-2.5">
-              <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-terminal-muted">
-                Reversão
-              </p>
+              <div className="flex items-center justify-between gap-1">
+                <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-terminal-muted">
+                  Reversão
+                </p>
+                <LearnButton indicatorLabel="Reversão" />
+              </div>
               <p className="mt-1 font-mono text-xs font-semibold text-terminal-positive">
                 {data.dealer_report.reversal_risk}
               </p>
@@ -78,7 +86,12 @@ export function InstitutionalReport({ data }: { data: AnalysisResponse }) {
           {gexContext ? (
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-md border border-terminal-border bg-terminal-panel p-2">
-                <p className="text-[9px] uppercase text-terminal-muted">Net GEX</p>
+                <div className="flex items-center justify-between gap-1">
+                  <p className="text-[9px] uppercase text-terminal-muted">
+                    Net GEX
+                  </p>
+                  <LearnButton indicatorLabel="Net GEX" />
+                </div>
                 <p
                   className={`mt-1 font-mono text-[11px] ${
                     gexContext.net_gex >= 0
@@ -90,9 +103,12 @@ export function InstitutionalReport({ data }: { data: AnalysisResponse }) {
                 </p>
               </div>
               <div className="rounded-md border border-terminal-border bg-terminal-panel p-2">
-                <p className="text-[9px] uppercase text-terminal-muted">
-                  Dealer Pressure
-                </p>
+                <div className="flex items-center justify-between gap-1">
+                  <p className="text-[9px] uppercase text-terminal-muted">
+                    Dealer Pressure
+                  </p>
+                  <LearnButton indicatorLabel="Dealer Pressure" />
+                </div>
                 <p className="mt-1 font-mono text-[11px] text-terminal-accent">
                   {gexContext.dealer_pressure} ·{" "}
                   {formatNumber(gexContext.dealer_pressure_score)}
@@ -103,17 +119,32 @@ export function InstitutionalReport({ data }: { data: AnalysisResponse }) {
           <ConfidenceBar value={data.dealer_report.confidence} />
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-md border border-terminal-border bg-terminal-panel p-2">
-              <p className="text-[9px] uppercase text-terminal-muted">Net OI</p>
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-[9px] uppercase text-terminal-muted">
+                  Net OI
+                </p>
+                <LearnButton indicatorLabel="Net OI" />
+              </div>
               <p className="mt-1 font-mono text-[11px]">{formatCompact(data.open_interest_summary.net_oi)}</p>
             </div>
             <div className="rounded-md border border-terminal-border bg-terminal-panel p-2">
-              <p className="text-[9px] uppercase text-terminal-muted">OI novo</p>
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-[9px] uppercase text-terminal-muted">
+                  OI novo
+                </p>
+                <LearnButton indicatorLabel="OI novo" />
+              </div>
               <p className="mt-1 font-mono text-[11px] text-terminal-positive">
                 {formatCompact(data.open_interest_summary.new_oi_total)}
               </p>
             </div>
             <div className="rounded-md border border-terminal-border bg-terminal-panel p-2">
-              <p className="text-[9px] uppercase text-terminal-muted">Concentração</p>
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-[9px] uppercase text-terminal-muted">
+                  Concentração
+                </p>
+                <LearnButton indicatorLabel="Concentração" />
+              </div>
               <p className="mt-1 font-mono text-[11px]">
                 {formatPercent(data.open_interest_summary.max_concentration_pct)}
               </p>
@@ -126,7 +157,12 @@ export function InstitutionalReport({ data }: { data: AnalysisResponse }) {
               }
               className="rounded-md border border-terminal-border bg-terminal-panel p-2"
             >
-              <p className="text-[9px] uppercase text-terminal-muted">OI Score</p>
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-[9px] uppercase text-terminal-muted">
+                  OI Score
+                </p>
+                <LearnButton indicatorLabel="OI Score" />
+              </div>
               <p className="mt-1 font-mono text-[11px] text-terminal-accent">
                 {formatNumber(oiContext?.concentration_score)}
               </p>

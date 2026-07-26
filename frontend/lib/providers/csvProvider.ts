@@ -44,8 +44,13 @@ export class CsvProvider implements OptionDataProvider {
     version: CSV_PROVIDER_VERSION,
     type: "csv",
     lastUpdated: null,
+    lastRefreshAt: null,
     origin: DEMO_CSV_ORIGIN,
     status: "idle",
+    readDurationMs: null,
+    strikeCount: 0,
+    optionCount: 0,
+    fallbackUsed: false,
   };
 
   async load(options: ProviderLoadOptions = {}): Promise<AnalysisResponse> {
@@ -67,15 +72,19 @@ export class CsvProvider implements OptionDataProvider {
         ...this.metadata,
         lastUpdated:
           analysis.source_updated_at ?? analysis.generated_at ?? new Date().toISOString(),
+        lastRefreshAt: analysis.generated_at ?? new Date().toISOString(),
         origin: analysis.source_name || this.metadata.origin,
         status: "ready",
+        readDurationMs: durationMs,
+        strikeCount: analysis.strike_table.length,
+        optionCount: countProcessedOptions(analysis),
       };
 
       providerLogger.loaded({
         provider: this.metadata.name,
         durationMs,
-        strikes: analysis.strike_table.length,
-        options: countProcessedOptions(analysis),
+        strikes: this.metadata.strikeCount,
+        options: this.metadata.optionCount,
         origin: this.metadata.origin,
       });
 

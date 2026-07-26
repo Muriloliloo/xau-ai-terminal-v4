@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { AlertPanel } from "@/components/cards/AlertPanel";
 import { MetricCard } from "@/components/cards/MetricCard";
@@ -15,6 +15,7 @@ import { DashboardSkeleton } from "@/components/layout/DashboardSkeleton";
 import { ErrorState } from "@/components/layout/ErrorState";
 import { MarketHeader } from "@/components/layout/MarketHeader";
 import { StrikeTable } from "@/components/tables/StrikeTable";
+import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
 import {
   createSnapshot,
   getHealth,
@@ -56,9 +57,16 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
     return { analysis: snapshot.analysis, health };
   }, [snapshotId]);
   const { data: resource, error, loading, reload } = useRemoteResource(loader);
+  const { preferences } = useWorkspace();
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const data = resource?.analysis ?? null;
+
+  useEffect(() => {
+    if (!preferences.autoRefresh || snapshotId) return;
+    const timer = window.setInterval(() => void reload(), 60_000);
+    return () => window.clearInterval(timer);
+  }, [preferences.autoRefresh, reload, snapshotId]);
 
   async function saveCurrentSnapshot() {
     if (!data) return;
@@ -93,18 +101,22 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
           onRefresh={() => void reload()}
         />
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <ErrorState message={error} onRetry={() => void reload()} />
+          <ErrorState
+            title="Provider indisponível"
+            message={error}
+            onRetry={() => void reload()}
+          />
           <AlertPanel alerts={[apiFailureAlert]} />
         </div>
       </>
     );
   }
 
-  if (!data) {
+  if (!data || loading) {
     return (
       <>
         <MarketHeader
-          data={null}
+          data={data}
           apiStatus="loading"
           loading
           onRefresh={() => void reload()}
@@ -180,7 +192,11 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
           />
         </section>
 
-        <section aria-label="Níveis institucionais" className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+        <section
+          id="gamma-levels"
+          aria-label="Níveis institucionais"
+          className="scroll-mt-4 grid grid-cols-2 gap-3 xl:grid-cols-5"
+        >
           <MetricCard
             label="Call Wall"
             value={formatNumber(data.call_wall)}
@@ -263,7 +279,10 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
         </section>
 
         {openInterest ? (
-          <section className="grid gap-3 xl:grid-cols-[440px_minmax(0,1fr)]">
+          <section
+            id="open-interest"
+            className="scroll-mt-4 grid gap-3 xl:grid-cols-[440px_minmax(0,1fr)]"
+          >
             <div className="grid grid-cols-2 gap-3">
               <MetricCard
                 label="Open Interest total"
@@ -429,7 +448,9 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
           </section>
         ) : null}
 
-        <InstitutionalReport data={data} />
+        <div id="dealer" className="scroll-mt-4">
+          <InstitutionalReport data={data} />
+        </div>
 
         <section className="grid gap-3 xl:grid-cols-[1.15fr_0.85fr]">
           <article className="rounded-lg border border-terminal-border bg-terminal-card p-4">

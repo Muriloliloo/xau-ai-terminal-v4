@@ -17,6 +17,7 @@ const providerFactories = new Map<OptionProviderType, ProviderFactory>([
 class FallbackOptionDataProvider implements OptionDataProvider {
   private activeProvider: OptionDataProvider;
   private lastLoadOptions: ProviderLoadOptions | undefined;
+  private fallbackUsed = false;
 
   constructor(
     private readonly primaryProvider: OptionDataProvider,
@@ -33,6 +34,7 @@ class FallbackOptionDataProvider implements OptionDataProvider {
       }
       const result = await this.primaryProvider.load(options);
       this.activeProvider = this.primaryProvider;
+      this.fallbackUsed = false;
       return result;
     } catch (reason) {
       return this.loadFallback(options, reason);
@@ -52,7 +54,10 @@ class FallbackOptionDataProvider implements OptionDataProvider {
   }
 
   getMetadata(): ProviderMetadata {
-    return this.activeProvider.getMetadata();
+    return {
+      ...this.activeProvider.getMetadata(),
+      fallbackUsed: this.fallbackUsed,
+    };
   }
 
   async isAvailable(): Promise<boolean> {
@@ -78,7 +83,35 @@ class FallbackOptionDataProvider implements OptionDataProvider {
     });
 
     this.activeProvider = this.fallbackProvider;
+    this.fallbackUsed = true;
     return this.fallbackProvider.load(options);
+  }
+}
+
+class ConfiguredFallbackProvider implements OptionDataProvider {
+  constructor(
+    private readonly provider: OptionDataProvider,
+    private readonly requestedType: OptionProviderType,
+  ) {}
+
+  load(options?: ProviderLoadOptions): Promise<AnalysisResponse> {
+    return this.provider.load(options);
+  }
+
+  refresh(): Promise<AnalysisResponse> {
+    return this.provider.refresh();
+  }
+
+  getMetadata(): ProviderMetadata {
+    return {
+      ...this.provider.getMetadata(),
+      fallbackUsed: true,
+      origin: `${this.provider.getMetadata().origin} · fallback de ${this.requestedType}`,
+    };
+  }
+
+  isAvailable(): Promise<boolean> {
+    return this.provider.isAvailable();
   }
 }
 
@@ -107,7 +140,7 @@ export function createOptionDataProvider(
       fallbackProvider: fallbackProvider.getMetadata().name,
       reason: "Provider ainda não registrado.",
     });
-    return fallbackProvider;
+    return new ConfiguredFallbackProvider(fallbackProvider, requestedType);
   }
 
   return new FallbackOptionDataProvider(

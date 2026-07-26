@@ -6,11 +6,19 @@ export const LOW_CONFIDENCE_THRESHOLD = 60;
 export const NAVIGATION = [
   { href: "/", label: "Dashboard", shortLabel: "Home" },
   { href: "/institutional", label: "Institucional", shortLabel: "Institucional" },
+  {
+    href: "/academy",
+    label: "Institutional Academy",
+    shortLabel: "Academy",
+  },
   { href: "/heatmap", label: "Mapa GEX", shortLabel: "GEX" },
   { href: "/analytics", label: "Analytics", shortLabel: "Analytics" },
   { href: "/history", label: "Histórico", shortLabel: "Histórico" },
   { href: "/snapshots", label: "Snapshots", shortLabel: "Snapshots" },
   { href: "/replay", label: "▶ Market Replay", shortLabel: "Replay" },
+  { href: "/favorites", label: "★ Favoritos", shortLabel: "Favoritos" },
+  { href: "/system", label: "Sistema", shortLabel: "Sistema" },
+  { href: "/preferences", label: "Preferences", shortLabel: "Preferências" },
   { href: "/settings", label: "Configurações", shortLabel: "Ajustes" },
 ] as const;
 

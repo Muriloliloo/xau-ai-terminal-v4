@@ -1,6 +1,7 @@
 "use client";
 
 import { StatusBadge } from "@/components/cards/StatusBadge";
+import { EmptyState } from "@/components/layout/EmptyState";
 import { ErrorState } from "@/components/layout/ErrorState";
 import { Header } from "@/components/layout/Header";
 import { API_BASE_URL } from "@/lib/constants";
@@ -61,6 +62,15 @@ export function SettingsWorkspace() {
               />
             </div>
           </div>
+          {!settings.sample_csv_available ? (
+            <div className="md:col-span-2">
+              <EmptyState
+                icon="CSV"
+                title="Arquivo CSV demonstrativo ausente"
+                description="O Dashboard continuará protegido contra valores inventados. Restaure o arquivo demonstrativo para habilitar a análise local."
+              />
+            </div>
+          ) : null}
         </div>
       )}
     </>
