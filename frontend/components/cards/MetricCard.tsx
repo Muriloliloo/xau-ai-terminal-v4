@@ -7,6 +7,7 @@ import { FavoriteButton } from "@/components/cards/FavoriteButton";
 import { Tooltip } from "@/components/cards/Tooltip";
 import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
 import { getIndicatorDescription } from "@/lib/indicatorDescriptions";
+import { UNAVAILABLE_LABEL } from "@/lib/formatters";
 import type { FavoriteIndicator, MetricTone } from "@/types/workspace";
 
 const toneClasses: Record<MetricTone, string> = {
@@ -36,7 +37,7 @@ function createIndicatorId(label: string): string {
 }
 
 function valueToText(value: ReactNode): string {
-  if (value == null) return "—";
+  if (value == null) return UNAVAILABLE_LABEL;
   if (typeof value === "string" || typeof value === "number") {
     return String(value);
   }

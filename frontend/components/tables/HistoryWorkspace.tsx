@@ -4,7 +4,12 @@ import { ErrorState } from "@/components/layout/ErrorState";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { Header } from "@/components/layout/Header";
 import { getHistory } from "@/lib/api";
-import { formatNumber, formatPercent, formatTimestamp } from "@/lib/formatters";
+import {
+  formatNumber,
+  formatPercent,
+  formatTimestamp,
+  UNAVAILABLE_LABEL,
+} from "@/lib/formatters";
 import { useRemoteResource } from "@/lib/useRemoteResource";
 
 export function HistoryWorkspace() {
@@ -45,7 +50,9 @@ export function HistoryWorkspace() {
               {records.map((record) => (
                 <tr key={record.id} className="border-b border-terminal-border/50 last:border-0">
                   <td className="px-3 py-3">{formatTimestamp(record.created_at)}</td>
-                  <td className="px-3 py-3">{record.regime ?? "—"}</td>
+                  <td className="px-3 py-3">
+                    {record.regime ?? UNAVAILABLE_LABEL}
+                  </td>
                   <td className="px-3 py-3 font-mono">{formatNumber(record.call_wall)}</td>
                   <td className="px-3 py-3 font-mono">{formatNumber(record.put_wall)}</td>
                   <td className="px-3 py-3 font-mono">{formatNumber(record.gex_total)}</td>

@@ -5,6 +5,11 @@ export const LOW_CONFIDENCE_THRESHOLD = 60;
 
 export const NAVIGATION = [
   { href: "/", label: "Dashboard", shortLabel: "Home" },
+  {
+    href: "/copilot",
+    label: "✦ Institutional Copilot",
+    shortLabel: "Copilot",
+  },
   { href: "/institutional", label: "Institucional", shortLabel: "Institucional" },
   {
     href: "/academy",

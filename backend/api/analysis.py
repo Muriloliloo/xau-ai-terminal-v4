@@ -8,6 +8,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
+from backend.api.errors import MISSING_SAMPLE_CSV_DETAIL
 from backend.config import SAMPLE_CSV_PATH
 from backend.core.alert_engine import build_alerts
 from backend.models.analysis import InstitutionalAnalysis
@@ -386,7 +387,7 @@ def _analyze(
     except FileNotFoundError as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(error),
+            detail=MISSING_SAMPLE_CSV_DETAIL,
         ) from error
     except (TypeError, ValueError) as error:
         raise HTTPException(

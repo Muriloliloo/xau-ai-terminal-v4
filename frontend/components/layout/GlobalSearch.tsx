@@ -5,6 +5,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 const SEARCH_ITEMS = [
   {
+    label: "Institutional Copilot",
+    keywords: "copilot knowledge engine perguntas chat assistente",
+    href: "/copilot",
+    group: "Inteligência",
+  },
+  {
     label: "Gamma Exposure",
     keywords: "gamma gex curva exposure",
     href: "/heatmap",

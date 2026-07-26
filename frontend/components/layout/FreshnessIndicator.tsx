@@ -8,7 +8,7 @@ function freshness(
   generatedAt: string | null | undefined,
   now: number,
 ): { label: string; tone: "positive" | "warning" | "negative" | "neutral" } {
-  if (!generatedAt) return { label: "Sem atualização", tone: "neutral" };
+  if (!generatedAt) return { label: "Indisponível", tone: "neutral" };
 
   const timestamp = new Date(generatedAt).getTime();
   if (Number.isNaN(timestamp)) {

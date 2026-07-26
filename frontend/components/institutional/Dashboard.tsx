@@ -23,7 +23,12 @@ import {
   getSnapshot,
 } from "@/lib/api";
 import { buildMarketAlerts, findDominantStrike } from "@/lib/alerts";
-import { formatCompact, formatNumber, formatPercent } from "@/lib/formatters";
+import {
+  formatCompact,
+  formatNumber,
+  formatPercent,
+  UNAVAILABLE_LABEL,
+} from "@/lib/formatters";
 import { getOptionDataProvider } from "@/lib/providers/providerFactory";
 import { useRemoteResource } from "@/lib/useRemoteResource";
 import type {
@@ -356,12 +361,13 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
               label="IV Skew"
               value={
                 volatility?.volatility_summary.iv_skew == null
-                  ? "—"
+                  ? UNAVAILABLE_LABEL
                   : `${formatNumber(volatility.volatility_summary.iv_skew)} p.p.`
               }
               tone="flip"
               helper={
-                volatility?.volatility_summary.skew_classification ?? "—"
+                volatility?.volatility_summary.skew_classification
+                  ?? UNAVAILABLE_LABEL
               }
               tooltip="Diferença Put IV menos Call IV. A classificação só existe quando ambos os lados possuem IV válida."
             />
@@ -370,15 +376,13 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
               value={
                 volatility?.expected_move.available
                   ? `± ${formatNumber(volatility.expected_move.expected_move_points)}`
-                  : volatility
-                    ? "Indisponível"
-                    : "—"
+                  : UNAVAILABLE_LABEL
               }
               tone={volatility?.expected_move.available ? "accent" : "neutral"}
               helper={
                 volatility?.expected_move.available
-                  ? `${formatPercent(volatility.expected_move.expected_move_pct)} · ${volatility.expected_move.expiry ?? "sem vencimento"}`
-                  : volatility?.expected_move.reason ?? "—"
+                  ? `${formatPercent(volatility.expected_move.expected_move_pct)} · ${volatility.expected_move.expiry ?? UNAVAILABLE_LABEL}`
+                  : volatility?.expected_move.reason ?? UNAVAILABLE_LABEL
               }
               tooltip="Calculado apenas quando spot, IV e prazo válidos existem no arquivo."
             />

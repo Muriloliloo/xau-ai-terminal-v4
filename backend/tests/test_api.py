@@ -10,6 +10,7 @@ if importlib.util.find_spec("fastapi") is None:
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from backend.api import analysis  # noqa: E402
 from backend.database import connection  # noqa: E402
 from backend.main import app  # noqa: E402
 
@@ -119,6 +120,19 @@ def test_invalid_upload_returns_validation_error(monkeypatch, tmp_path):
 
     assert response.status_code == 422
     assert "Colunas obrigatórias ausentes" in response.json()["detail"]
+
+
+def test_missing_demo_csv_does_not_expose_server_path(monkeypatch, tmp_path):
+    missing_path = tmp_path / "private" / "missing-sample.csv"
+    monkeypatch.setattr(analysis, "SAMPLE_CSV_PATH", missing_path)
+
+    with _client(monkeypatch, tmp_path) as client:
+        response = client.post("/api/analysis/demo")
+
+    detail = response.json()["detail"]
+    assert response.status_code == 404
+    assert detail == "Arquivo CSV demonstrativo não encontrado."
+    assert str(tmp_path) not in detail
 
 
 def test_history_and_settings_endpoints(monkeypatch, tmp_path):

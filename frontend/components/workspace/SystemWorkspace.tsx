@@ -6,7 +6,7 @@ import { CardHeader } from "@/components/cards/CardHeader";
 import { StatusBadge } from "@/components/cards/StatusBadge";
 import { Header } from "@/components/layout/Header";
 import { getHealth } from "@/lib/api";
-import { formatTimestamp } from "@/lib/formatters";
+import { formatTimestamp, UNAVAILABLE_LABEL } from "@/lib/formatters";
 import { getOptionDataProvider } from "@/lib/providers/providerFactory";
 import { useRemoteResource } from "@/lib/useRemoteResource";
 import type { ProviderMetadata } from "@/lib/providers/interfaceProvider";
@@ -18,7 +18,7 @@ function readProviderMetadata(): ProviderMetadata {
 }
 
 function formatDuration(value: number | null): string {
-  return value == null ? "—" : `${value.toFixed(2)} ms`;
+  return value == null ? UNAVAILABLE_LABEL : `${value.toFixed(2)} ms`;
 }
 
 function SystemValue({
@@ -101,7 +101,7 @@ export function SystemWorkspace() {
             value={
               metadata.lastRefreshAt
                 ? formatTimestamp(metadata.lastRefreshAt)
-                : "Sem leitura nesta sessão"
+                : UNAVAILABLE_LABEL
             }
           />
           <SystemValue label="Origem" value={metadata.origin} />

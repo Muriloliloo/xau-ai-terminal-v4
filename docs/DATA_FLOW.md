@@ -156,6 +156,23 @@ AnalysisResponse
 Preço e variação continuam `null`. O frontend mostra ausência de feed em vez de
 criar cotações.
 
+## Institutional Copilot
+
+```text
+snapshot mais recente ou provider atual
+ -> AnalysisResponse
+ -> KnowledgeContext tipado
+ -> detecção local de intenção
+ -> leitura somente dos blocos solicitados
+ -> resposta estruturada + indicadores utilizados
+ -> histórico validado no LocalStorage
+```
+
+O Copilot não recalcula engines, não consulta fontes externas e não cria
+números. Replay exige pelo menos dois snapshots. Volatility exige IV válida.
+Quando a fonte solicitada não existe no contexto, o Knowledge Engine retorna
+`Não há dados suficientes.`.
+
 ## Snapshots
 
 ```text

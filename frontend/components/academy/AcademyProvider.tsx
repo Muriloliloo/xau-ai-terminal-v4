@@ -10,13 +10,15 @@ import {
   useState,
 } from "react";
 
-const ACADEMY_STORAGE_KEY = "xau-terminal.academy.progress.v1";
-const TOUR_LAST_STEP = 5;
+import {
+  ACADEMY_STORAGE_KEY,
+  type AcademyProgress,
+  DEFAULT_ACADEMY_PROGRESS,
+  normalizeAcademyProgress,
+} from "@/lib/academyStorage";
+import { readStoredJson, writeStoredJson } from "@/lib/storage";
 
-interface AcademyProgress {
-  completedLessonIds: string[];
-  tourCompleted: boolean;
-}
+const TOUR_LAST_STEP = 5;
 
 interface AcademyContextValue {
   hydrated: boolean;
@@ -35,52 +37,27 @@ interface AcademyContextValue {
   finishTour: () => void;
 }
 
-const DEFAULT_PROGRESS: AcademyProgress = {
-  completedLessonIds: [],
-  tourCompleted: false,
-};
-
 const AcademyContext = createContext<AcademyContextValue | null>(null);
-
-function readProgress(): AcademyProgress {
-  try {
-    const stored = window.localStorage.getItem(ACADEMY_STORAGE_KEY);
-    if (!stored) return DEFAULT_PROGRESS;
-    const parsed = JSON.parse(stored) as Partial<AcademyProgress>;
-    return {
-      completedLessonIds: Array.isArray(parsed.completedLessonIds)
-        ? parsed.completedLessonIds
-        : [],
-      tourCompleted: Boolean(parsed.tourCompleted),
-    };
-  } catch {
-    return DEFAULT_PROGRESS;
-  }
-}
-
-function writeProgress(progress: AcademyProgress): void {
-  try {
-    window.localStorage.setItem(
-      ACADEMY_STORAGE_KEY,
-      JSON.stringify(progress),
-    );
-  } catch {
-    // Progress remains available in memory when browser storage is blocked.
-  }
-}
 
 export function AcademyProvider({
   children,
 }: Readonly<{ children: ReactNode }>) {
   const [hydrated, setHydrated] = useState(false);
-  const [progress, setProgress] = useState<AcademyProgress>(DEFAULT_PROGRESS);
+  const [progress, setProgress] = useState<AcademyProgress>(
+    DEFAULT_ACADEMY_PROGRESS,
+  );
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [isTourOpen, setTourOpen] = useState(false);
   const [tourStep, setTourStep] = useState(0);
 
   useEffect(() => {
     const hydrationTimer = window.setTimeout(() => {
-      const storedProgress = readProgress();
+      const storedProgress = readStoredJson(
+        window.localStorage,
+        ACADEMY_STORAGE_KEY,
+        DEFAULT_ACADEMY_PROGRESS,
+        normalizeAcademyProgress,
+      );
       setProgress(storedProgress);
       setTourOpen(!storedProgress.tourCompleted);
       setTourStep(0);
@@ -92,7 +69,7 @@ export function AcademyProvider({
 
   useEffect(() => {
     if (!hydrated) return;
-    writeProgress(progress);
+    writeStoredJson(window.localStorage, ACADEMY_STORAGE_KEY, progress);
   }, [hydrated, progress]);
 
   useEffect(() => {
@@ -103,18 +80,6 @@ export function AcademyProvider({
       document.body.style.overflow = previousOverflow;
     };
   }, [activeLessonId, isTourOpen]);
-
-  useEffect(() => {
-    function closeDrawerWithEscape(event: KeyboardEvent) {
-      if (event.key === "Escape" && activeLessonId) {
-        setActiveLessonId(null);
-      }
-    }
-
-    window.addEventListener("keydown", closeDrawerWithEscape);
-    return () =>
-      window.removeEventListener("keydown", closeDrawerWithEscape);
-  }, [activeLessonId]);
 
   const openLesson = useCallback((lessonId: string) => {
     setActiveLessonId(lessonId);

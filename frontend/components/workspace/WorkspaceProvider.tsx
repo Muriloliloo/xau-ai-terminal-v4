@@ -14,19 +14,16 @@ import type {
   FavoriteIndicator,
   WorkspacePreferences,
 } from "@/types/workspace";
+import { readStoredJson, writeStoredJson } from "@/lib/storage";
+import {
+  DEFAULT_WORKSPACE_PREFERENCES,
+  FAVORITES_STORAGE_KEY,
+  normalizeFavoriteIndicators,
+  normalizeWorkspacePreferences,
+  PREFERENCES_STORAGE_KEY,
+} from "@/lib/workspaceStorage";
 
-const PREFERENCES_STORAGE_KEY = "xau-terminal.preferences.v1";
-const FAVORITES_STORAGE_KEY = "xau-terminal.favorites.v1";
-
-export const DEFAULT_WORKSPACE_PREFERENCES: WorkspacePreferences = {
-  theme: "terminal",
-  animations: true,
-  compactMode: false,
-  autoRefresh: false,
-  showTooltips: true,
-  showDetailedValues: true,
-  workspaceMode: "normal",
-};
+export { DEFAULT_WORKSPACE_PREFERENCES } from "@/lib/workspaceStorage";
 
 interface WorkspaceContextValue {
   hydrated: boolean;
@@ -44,23 +41,6 @@ interface WorkspaceContextValue {
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
-function readStoredValue<T>(key: string, fallback: T): T {
-  try {
-    const stored = window.localStorage.getItem(key);
-    return stored ? (JSON.parse(stored) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function writeStoredValue(key: string, value: unknown): void {
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // UI preferences remain active in memory when browser storage is blocked.
-  }
-}
-
 export function WorkspaceProvider({
   children,
 }: Readonly<{ children: ReactNode }>) {
@@ -73,16 +53,21 @@ export function WorkspaceProvider({
 
   useEffect(() => {
     const hydrationTimer = window.setTimeout(() => {
-      const savedPreferences = readStoredValue<Partial<WorkspacePreferences>>(
-        PREFERENCES_STORAGE_KEY,
-        {},
+      setPreferences(
+        readStoredJson(
+          window.localStorage,
+          PREFERENCES_STORAGE_KEY,
+          DEFAULT_WORKSPACE_PREFERENCES,
+          normalizeWorkspacePreferences,
+        ),
       );
-      setPreferences({
-        ...DEFAULT_WORKSPACE_PREFERENCES,
-        ...savedPreferences,
-      });
       setFavorites(
-        readStoredValue<FavoriteIndicator[]>(FAVORITES_STORAGE_KEY, []),
+        readStoredJson(
+          window.localStorage,
+          FAVORITES_STORAGE_KEY,
+          [],
+          normalizeFavoriteIndicators,
+        ),
       );
       setHydrated(true);
     }, 0);
@@ -92,12 +77,12 @@ export function WorkspaceProvider({
 
   useEffect(() => {
     if (!hydrated) return;
-    writeStoredValue(PREFERENCES_STORAGE_KEY, preferences);
+    writeStoredJson(window.localStorage, PREFERENCES_STORAGE_KEY, preferences);
   }, [hydrated, preferences]);
 
   useEffect(() => {
     if (!hydrated) return;
-    writeStoredValue(FAVORITES_STORAGE_KEY, favorites);
+    writeStoredJson(window.localStorage, FAVORITES_STORAGE_KEY, favorites);
   }, [favorites, hydrated]);
 
   useEffect(() => {

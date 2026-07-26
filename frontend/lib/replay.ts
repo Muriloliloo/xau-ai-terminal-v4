@@ -1,4 +1,8 @@
-import { formatNumber, formatPercent } from "@/lib/formatters";
+import {
+  formatNumber,
+  formatPercent,
+  UNAVAILABLE_LABEL,
+} from "@/lib/formatters";
 import type { SnapshotSummary } from "@/types";
 import type {
   ReplayComparisonMetric,
@@ -12,7 +16,9 @@ const timeFormatter = new Intl.DateTimeFormat("pt-BR", {
 
 export function formatReplayTime(value: string): string {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "—" : timeFormatter.format(date);
+  return Number.isNaN(date.getTime())
+    ? UNAVAILABLE_LABEL
+    : timeFormatter.format(date);
 }
 
 export function sortSnapshotsChronologically(
@@ -63,7 +69,7 @@ function numericChange(
   current: number | null,
   suffix = "",
 ): string {
-  if (previous == null || current == null) return "—";
+  if (previous == null || current == null) return UNAVAILABLE_LABEL;
   return `${signed(current - previous)}${suffix}`;
 }
 
@@ -153,14 +159,14 @@ export function generateReplayAnalysis(
   const gexChange = percentageChange(previous.gex_total, current.gex_total);
   if (gexChange != null && Math.abs(gexChange) >= 0.01) {
     analysis.push(
-      `Net GEX ${gexChange > 0 ? "aumentou" : "reduziu"} ${Math.abs(gexChange).toFixed(1)}%.`,
+      `Net GEX ${gexChange > 0 ? "aumentou" : "reduziu"} ${formatPercent(Math.abs(gexChange))}.`,
     );
   }
 
   const oiChange = percentageChange(previous.net_oi, current.net_oi);
   if (oiChange != null && Math.abs(oiChange) >= 0.01) {
     analysis.push(
-      `Open Interest líquido ${oiChange > 0 ? "aumentou" : "reduziu"} ${Math.abs(oiChange).toFixed(1)}%.`,
+      `Open Interest líquido ${oiChange > 0 ? "aumentou" : "reduziu"} ${formatPercent(Math.abs(oiChange))}.`,
     );
   }
 

@@ -25,6 +25,8 @@ A tela principal oferece:
 - snapshots automáticos e manuais, reconstrução integral e comparação histórica.
 - distribuição Top 10 de Open Interest e OI Concentration Score.
 - cards de IV, Volatility Smile e Expected Move somente quando existe spot.
+- Institutional Copilot local, com histórico e respostas citando os indicadores
+  internos utilizados.
 
 O preço e sua variação permanecem indisponíveis até existir uma fonte real. A
 interface mostra esse estado explicitamente e não cria cotações fictícias.
@@ -73,6 +75,18 @@ compara dois momentos e permite exclusão individual. O botão **Salvar Snapshot
 cria um marco manual adicional.
 
 Consulte `docs/SNAPSHOTS.md` para schema, fluxo e limitações.
+
+## Institutional Copilot
+
+A rota `/copilot` fornece uma interface conversacional baseada no Knowledge
+Engine local. Não existe chamada para OpenAI ou outro LLM. As respostas usam
+somente Dealer Report, Replay, Heatmap, Analytics, AI Summary, Open Interest,
+GEX, Gamma e Volatility disponíveis no contexto carregado.
+
+Perguntas sem dados suficientes retornam explicitamente
+`Não há dados suficientes.`. A abstração `CopilotProvider` permite integrar um
+LLM futuro sem mudar a interface ou o contrato das mensagens. Consulte
+`docs/COPILOT.md`.
 
 ## Requisitos
 
@@ -136,6 +150,7 @@ python -m pytest
 python -m ruff check app.py backend xau_ai_terminal tests
 
 cd frontend
+npm test
 npm run lint
 npm run typecheck
 npm run build
@@ -145,9 +160,12 @@ O build web e os testes HTTP exigem a instalação prévia de
 `requirements-dev.txt` e `frontend/package.json`. A ausência dessas dependências
 é uma falha de ambiente, não deve ser tratada como validação aprovada.
 
-O dashboard é validado com ESLint, TypeScript e build de produção. Os testes
-incluem regressão Gamma, Gamma Exposure, hashes protegidos, Open Interest,
-Volatility, snapshots antigos, extremos de entrada, comentário e endpoints. A suíte HTTP requer FastAPI,
+O dashboard é validado com testes de unidade/contrato, ESLint, TypeScript e
+build de produção. Os testes incluem providers e fallback, Market Summary,
+Replay, snapshots, formatação pt-BR, preferências, favoritos, LocalStorage
+corrompido, estados indisponíveis, regressão Gamma, Gamma Exposure, hashes
+protegidos, Open Interest, Volatility, extremos de entrada, comentário e
+endpoints. A suíte HTTP requer FastAPI,
 Pydantic e HTTPX instalados no mesmo
 ambiente Python usado pelo comando `pytest`.
 

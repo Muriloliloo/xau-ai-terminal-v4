@@ -1,9 +1,12 @@
 "use client";
 
+import { useRef } from "react";
+
 import { AcademyVisualExample } from "@/components/academy/AcademyVisualExample";
 import { useAcademy } from "@/components/academy/AcademyProvider";
 import { StatusBadge } from "@/components/cards/StatusBadge";
 import { getAcademyLessonById } from "@/lib/academyContent";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 
 function LearningSection({
   title,
@@ -32,22 +35,25 @@ export function AcademyDrawer() {
     isLessonCompleted,
   } = useAcademy();
   const lesson = getAcademyLessonById(activeLessonId);
+  const dialogRef = useRef<HTMLElement>(null);
+  useDialogFocus(Boolean(lesson), dialogRef, closeLesson);
   if (!lesson) return null;
 
   const completed = isLessonCompleted(lesson.id);
 
   return (
     <div className="fixed inset-0 z-[80] flex justify-end">
-      <button
-        type="button"
-        aria-label="Fechar painel educacional"
+      <div
+        aria-hidden="true"
         onClick={closeLesson}
         className="absolute inset-0 cursor-default bg-black/65 backdrop-blur-[2px]"
       />
       <aside
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="academy-drawer-title"
+        tabIndex={-1}
         className="workspace-slide relative z-10 flex h-full w-full max-w-[520px] flex-col border-l border-terminal-border bg-terminal-sidebar shadow-[-24px_0_60px_rgb(0_0_0/35%)]"
       >
         <div className="flex items-start justify-between gap-3 border-b border-terminal-border p-4">
@@ -70,6 +76,7 @@ export function AcademyDrawer() {
               type="button"
               onClick={closeLesson}
               aria-label="Fechar"
+              data-dialog-initial-focus
               className="grid size-8 place-items-center rounded-md border border-terminal-border text-terminal-muted transition-colors duration-150 hover:text-terminal-text"
             >
               ×

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { safeErrorMessage } from "@/lib/errors";
+
 interface RemoteResource<T> {
   data: T | null;
   error: string | null;
@@ -20,7 +22,7 @@ export function useRemoteResource<T>(loader: () => Promise<T>): RemoteResource<T
     try {
       setData(await loader());
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Erro desconhecido.");
+      setError(safeErrorMessage(reason));
     } finally {
       setLoading(false);
     }
@@ -35,7 +37,7 @@ export function useRemoteResource<T>(loader: () => Promise<T>): RemoteResource<T
       })
       .catch((reason: unknown) => {
         if (active) {
-          setError(reason instanceof Error ? reason.message : "Erro desconhecido.");
+          setError(safeErrorMessage(reason));
         }
       })
       .finally(() => {

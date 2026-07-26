@@ -5,6 +5,7 @@ import {
   formatNumber,
   formatSignedPercent,
   formatTime,
+  UNAVAILABLE_LABEL,
 } from "@/lib/formatters";
 import type { AnalysisResponse } from "@/types";
 
@@ -61,7 +62,7 @@ export function MarketHeader({
                 priceAvailable ? "text-terminal-text" : "text-terminal-muted"
               }`}
             >
-              {priceAvailable ? formatNumber(data.price) : "Preço indisponível"}
+              {priceAvailable ? formatNumber(data.price) : UNAVAILABLE_LABEL}
             </p>
           </div>
           <div>
@@ -102,7 +103,7 @@ export function MarketHeader({
               title={data?.source_name ?? "Nenhuma fonte carregada"}
               className="mt-0.5 max-w-40 truncate font-mono text-[11px] text-terminal-text"
             >
-              {data?.source_name ?? "—"}
+              {data?.source_name ?? UNAVAILABLE_LABEL}
             </p>
           </div>
           <button

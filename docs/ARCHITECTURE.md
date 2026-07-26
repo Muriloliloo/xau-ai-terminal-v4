@@ -120,6 +120,8 @@ O frontend web 4.0 usa Next.js App Router e separa:
 - `components/tables`: strikes e histórico;
 - `components/institutional`: dashboard, upload, Dealer Report e confiança;
 - `components/snapshots`: listagem, ações e comparação;
+- `components/copilot`: chat, histórico, sugestões e respostas estruturadas;
+- `lib/copilot`: Knowledge Engine, contexto, persistência e providers;
 - `lib/api.ts`: cliente HTTP central;
 - `lib/useRemoteResource.ts`: carregamento remoto e retry;
 - `lib/alerts.ts`: alertas derivados do contrato real;
@@ -128,6 +130,19 @@ O frontend web 4.0 usa Next.js App Router e separa:
 - `types/`: contratos TypeScript equivalentes aos schemas Pydantic.
 
 Detalhes visuais e responsivos estão em [FRONTEND.md](FRONTEND.md).
+
+### Institutional Copilot
+
+`/copilot` reutiliza exclusivamente dados presentes em `AnalysisResponse` e
+snapshots. `KnowledgeContext` separa Dealer Report, Replay, Heatmap, Analytics,
+AI Summary, Open Interest, GEX, Gamma e Volatility. O
+`KnowledgeEngineProvider` interpreta perguntas por regras locais e devolve
+seções acompanhadas dos indicadores efetivamente consultados.
+
+A UI depende de `CopilotProvider`, não da implementação local. Assim, um
+provider futuro pode conectar um LLM por meio de uma camada servidora sem
+alterar componentes, histórico ou formato da resposta. Consulte
+[COPILOT.md](COPILOT.md).
 
 ### Extensão do contrato 4.0
 

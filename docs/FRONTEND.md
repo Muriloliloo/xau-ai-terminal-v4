@@ -168,7 +168,13 @@ npm run dev
 ## Validação
 
 ```powershell
+npm test
 npm run lint
 npm run typecheck
 npm run build
 ```
+
+O quality gate cobre providers, fallback, regras do Market Summary, Replay,
+comparação, formatação pt-BR, persistência validada, erros seguros e contratos
+responsivos. A Academy carrega conteúdo e overlays sob demanda, reduzindo o
+JavaScript compartilhado pelas rotas que não usam o módulo educacional.

@@ -2,9 +2,8 @@
 
 import type { ReactNode } from "react";
 
-import { AcademyDrawer } from "@/components/academy/AcademyDrawer";
+import { AcademyOverlays } from "@/components/academy/AcademyOverlays";
 import { AcademyProvider } from "@/components/academy/AcademyProvider";
-import { WelcomeTour } from "@/components/academy/WelcomeTour";
 import { GlobalToolbar } from "@/components/layout/GlobalToolbar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import {
@@ -17,8 +16,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
     <WorkspaceProvider>
       <AcademyProvider>
         <WorkspaceFrame>{children}</WorkspaceFrame>
-        <AcademyDrawer />
-        <WelcomeTour />
+        <AcademyOverlays />
       </AcademyProvider>
     </WorkspaceProvider>
   );

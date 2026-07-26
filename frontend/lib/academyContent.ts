@@ -711,38 +711,12 @@ export const PRACTICAL_SCENARIOS: PracticalScenario[] = [
   },
 ];
 
-const INDICATOR_ALIASES: Record<string, string> = {
-  "Market Regime": "regime",
-  "Gamma Environment": "regime",
-  Confidence: "confidence",
-  "Confiança do regime": "confidence",
-  "Volatility Smile": "iv-skew",
-  Rompimento: "breakout-risk",
-  Reversão: "reversal-risk",
-  "Net GEX": "gex-total",
-  "OI novo": "new-open-interest",
-  Concentração: "largest-concentration",
-  "OI Score": "oi-concentration-score",
-};
-
 const LESSONS_BY_ID = new Map(
   ACADEMY_LESSONS.map((lesson) => [lesson.id, lesson]),
-);
-
-const LESSONS_BY_TITLE = new Map(
-  ACADEMY_LESSONS.map((lesson) => [lesson.title.toLowerCase(), lesson]),
 );
 
 export function getAcademyLessonById(
   lessonId: string | null | undefined,
 ): AcademyLesson | null {
   return lessonId ? (LESSONS_BY_ID.get(lessonId) ?? null) : null;
-}
-
-export function getAcademyLessonForIndicator(
-  indicatorLabel: string,
-): AcademyLesson | null {
-  const aliasId = INDICATOR_ALIASES[indicatorLabel];
-  if (aliasId) return getAcademyLessonById(aliasId);
-  return LESSONS_BY_TITLE.get(indicatorLabel.toLowerCase()) ?? null;
 }

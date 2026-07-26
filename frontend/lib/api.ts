@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "@/lib/constants";
+import { safeErrorMessage } from "@/lib/errors";
 import type {
   AnalysisResponse,
   GammaExposureAnalysis,
@@ -38,7 +39,7 @@ export async function apiRequest<T>(
     let message = `Falha na API (${response.status}).`;
     try {
       const body = (await response.json()) as { detail?: string };
-      message = body.detail ?? message;
+      message = safeErrorMessage(body.detail, message);
     } catch {
       // Keep the stable fallback when the API does not return JSON.
     }

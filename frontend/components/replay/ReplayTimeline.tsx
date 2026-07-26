@@ -2,6 +2,7 @@ import {
   formatReplayTime,
   replayRegime,
 } from "@/lib/replay";
+import { UNAVAILABLE_LABEL } from "@/lib/formatters";
 import type { SnapshotSummary } from "@/types";
 
 interface ReplayTimelineProps {
@@ -37,8 +38,10 @@ export function ReplayTimeline({
           </p>
         </div>
         <span className="rounded-full border border-terminal-accent/35 bg-terminal-accent/10 px-3 py-1 font-mono text-[10px] text-terminal-accent">
-          Snapshot #{selected?.id ?? "—"} ·{" "}
-          {selected ? formatReplayTime(selected.created_at) : "—"}
+          Snapshot #{selected?.id ?? UNAVAILABLE_LABEL} ·{" "}
+          {selected
+            ? formatReplayTime(selected.created_at)
+            : UNAVAILABLE_LABEL}
         </span>
       </div>
 

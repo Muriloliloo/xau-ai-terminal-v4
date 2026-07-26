@@ -11,12 +11,24 @@ import {
   formatNumber,
   formatPercent,
   formatTimestamp,
+  UNAVAILABLE_LABEL,
 } from "@/lib/formatters";
+import { safeErrorMessage } from "@/lib/errors";
 import { useRemoteResource } from "@/lib/useRemoteResource";
 import type { SnapshotDetail, SnapshotSummary } from "@/types";
 
 function signed(value: number) {
   return `${value > 0 ? "+" : ""}${formatNumber(value)}`;
+}
+
+function numericDelta(
+  previous: number | null | undefined,
+  current: number | null | undefined,
+  suffix = "",
+): string {
+  return previous == null || current == null
+    ? UNAVAILABLE_LABEL
+    : `${signed(current - previous)}${suffix}`;
 }
 
 export function SnapshotsWorkspace() {
@@ -43,10 +55,16 @@ export function SnapshotsWorkspace() {
     setActionError(null);
     try {
       const details = await Promise.all(selected.map(getSnapshot));
-      details.sort((left, right) => left.id - right.id);
+      details.sort((left, right) => {
+        const leftTime = new Date(left.created_at).getTime();
+        const rightTime = new Date(right.created_at).getTime();
+        return Number.isNaN(leftTime) || Number.isNaN(rightTime)
+          ? left.id - right.id
+          : leftTime - rightTime || left.id - right.id;
+      });
       setComparison(details);
     } catch (reason) {
-      setActionError(reason instanceof Error ? reason.message : "Falha na comparação.");
+      setActionError(safeErrorMessage(reason, "Falha na comparação."));
     } finally {
       setComparing(false);
     }
@@ -61,7 +79,7 @@ export function SnapshotsWorkspace() {
       setComparison(null);
       await reload();
     } catch (reason) {
-      setActionError(reason instanceof Error ? reason.message : "Falha ao excluir.");
+      setActionError(safeErrorMessage(reason, "Falha ao excluir."));
     }
   }
 
@@ -221,7 +239,7 @@ export function SnapshotsWorkspace() {
                         comparison[1].analysis.gamma_exposure_analysis.call_gex
                           - comparison[0].analysis.gamma_exposure_analysis.call_gex,
                       )
-                    : "—",
+                    : UNAVAILABLE_LABEL,
               },
               {
                 label: "Put GEX",
@@ -238,7 +256,7 @@ export function SnapshotsWorkspace() {
                         comparison[1].analysis.gamma_exposure_analysis.put_gex
                           - comparison[0].analysis.gamma_exposure_analysis.put_gex,
                       )
-                    : "—",
+                    : UNAVAILABLE_LABEL,
               },
               {
                 label: "GEX bruto",
@@ -255,7 +273,7 @@ export function SnapshotsWorkspace() {
                         comparison[1].analysis.gamma_exposure_analysis.total_gex
                           - comparison[0].analysis.gamma_exposure_analysis.total_gex,
                       )
-                    : "—",
+                    : UNAVAILABLE_LABEL,
               },
               {
                 label: "Net GEX",
@@ -272,16 +290,16 @@ export function SnapshotsWorkspace() {
                         comparison[1].analysis.gamma_exposure_analysis.net_gex
                           - comparison[0].analysis.gamma_exposure_analysis.net_gex,
                       )
-                    : "—",
+                    : UNAVAILABLE_LABEL,
               },
               {
                 label: "Dealer Pressure",
                 left:
                   comparison[0].analysis.gamma_exposure_analysis
-                    ?.dealer_pressure ?? "—",
+                    ?.dealer_pressure ?? UNAVAILABLE_LABEL,
                 right:
                   comparison[1].analysis.gamma_exposure_analysis
-                    ?.dealer_pressure ?? "—",
+                    ?.dealer_pressure ?? UNAVAILABLE_LABEL,
                 delta:
                   comparison[0].analysis.gamma_exposure_analysis
                     ?.dealer_pressure
@@ -309,7 +327,7 @@ export function SnapshotsWorkspace() {
                           - comparison[0].analysis.gamma_exposure_analysis
                             .dealer_pressure_score,
                       )
-                    : "—",
+                    : UNAVAILABLE_LABEL,
               },
               {
                 label: "Gamma Magnet GEX",
@@ -322,16 +340,13 @@ export function SnapshotsWorkspace() {
                 delta:
                   comparison[0].analysis.gamma_exposure_analysis
                   && comparison[1].analysis.gamma_exposure_analysis
-                    ? signed(
-                        (
-                          comparison[1].analysis.gamma_exposure_analysis
-                            .gamma_magnet ?? 0
-                        ) - (
-                          comparison[0].analysis.gamma_exposure_analysis
-                            .gamma_magnet ?? 0
-                        ),
+                    ? numericDelta(
+                        comparison[0].analysis.gamma_exposure_analysis
+                          .gamma_magnet,
+                        comparison[1].analysis.gamma_exposure_analysis
+                          .gamma_magnet,
                       )
-                    : "—",
+                    : UNAVAILABLE_LABEL,
               },
               {
                 label: "IV ponderada",
@@ -346,16 +361,14 @@ export function SnapshotsWorkspace() {
                 delta:
                   comparison[0].analysis.volatility_analysis
                   && comparison[1].analysis.volatility_analysis
-                    ? `${signed(
-                        (
-                          comparison[1].analysis.volatility_analysis
-                            .volatility_summary.weighted_iv ?? 0
-                        ) - (
-                          comparison[0].analysis.volatility_analysis
-                            .volatility_summary.weighted_iv ?? 0
-                        ),
-                      )} p.p.`
-                    : "—",
+                    ? numericDelta(
+                        comparison[0].analysis.volatility_analysis
+                          .volatility_summary.weighted_iv,
+                        comparison[1].analysis.volatility_analysis
+                          .volatility_summary.weighted_iv,
+                        " p.p.",
+                      )
+                    : UNAVAILABLE_LABEL,
               },
               {
                 label: "Call IV",
@@ -370,16 +383,14 @@ export function SnapshotsWorkspace() {
                 delta:
                   comparison[0].analysis.volatility_analysis
                   && comparison[1].analysis.volatility_analysis
-                    ? `${signed(
-                        (
-                          comparison[1].analysis.volatility_analysis
-                            .volatility_summary.call_iv ?? 0
-                        ) - (
-                          comparison[0].analysis.volatility_analysis
-                            .volatility_summary.call_iv ?? 0
-                        ),
-                      )} p.p.`
-                    : "—",
+                    ? numericDelta(
+                        comparison[0].analysis.volatility_analysis
+                          .volatility_summary.call_iv,
+                        comparison[1].analysis.volatility_analysis
+                          .volatility_summary.call_iv,
+                        " p.p.",
+                      )
+                    : UNAVAILABLE_LABEL,
               },
               {
                 label: "Put IV",
@@ -394,16 +405,14 @@ export function SnapshotsWorkspace() {
                 delta:
                   comparison[0].analysis.volatility_analysis
                   && comparison[1].analysis.volatility_analysis
-                    ? `${signed(
-                        (
-                          comparison[1].analysis.volatility_analysis
-                            .volatility_summary.put_iv ?? 0
-                        ) - (
-                          comparison[0].analysis.volatility_analysis
-                            .volatility_summary.put_iv ?? 0
-                        ),
-                      )} p.p.`
-                    : "—",
+                    ? numericDelta(
+                        comparison[0].analysis.volatility_analysis
+                          .volatility_summary.put_iv,
+                        comparison[1].analysis.volatility_analysis
+                          .volatility_summary.put_iv,
+                        " p.p.",
+                      )
+                    : UNAVAILABLE_LABEL,
               },
               {
                 label: "IV Skew",
@@ -418,16 +427,14 @@ export function SnapshotsWorkspace() {
                 delta:
                   comparison[0].analysis.volatility_analysis
                   && comparison[1].analysis.volatility_analysis
-                    ? `${signed(
-                        (
-                          comparison[1].analysis.volatility_analysis
-                            .volatility_summary.iv_skew ?? 0
-                        ) - (
-                          comparison[0].analysis.volatility_analysis
-                            .volatility_summary.iv_skew ?? 0
-                        ),
-                      )} p.p.`
-                    : "—",
+                    ? numericDelta(
+                        comparison[0].analysis.volatility_analysis
+                          .volatility_summary.iv_skew,
+                        comparison[1].analysis.volatility_analysis
+                          .volatility_summary.iv_skew,
+                        " p.p.",
+                      )
+                    : UNAVAILABLE_LABEL,
               },
               {
                 label: "Expected Move",
@@ -450,16 +457,13 @@ export function SnapshotsWorkspace() {
                     .available
                   && comparison[1].analysis.volatility_analysis?.expected_move
                     .available
-                    ? signed(
-                        (
-                          comparison[1].analysis.volatility_analysis
-                            .expected_move.expected_move_points ?? 0
-                        ) - (
-                          comparison[0].analysis.volatility_analysis
-                            .expected_move.expected_move_points ?? 0
-                        ),
+                    ? numericDelta(
+                        comparison[0].analysis.volatility_analysis
+                          .expected_move.expected_move_points,
+                        comparison[1].analysis.volatility_analysis
+                          .expected_move.expected_move_points,
                       )
-                    : "—",
+                    : UNAVAILABLE_LABEL,
               },
               {
                 label: "Net OI",
@@ -508,7 +512,7 @@ export function SnapshotsWorkspace() {
                         comparison[1].analysis.open_interest_analysis.oi_concentration_score
                           - comparison[0].analysis.open_interest_analysis.oi_concentration_score,
                       )
-                    : "—",
+                    : UNAVAILABLE_LABEL,
               },
               {
                 label: "Maior concentração OI",
@@ -554,24 +558,27 @@ export function SnapshotsWorkspace() {
                 label: "Call Wall",
                 left: formatNumber(comparison[0].call_wall),
                 right: formatNumber(comparison[1].call_wall),
-                delta: signed(
-                  (comparison[1].call_wall ?? 0) - (comparison[0].call_wall ?? 0),
+                delta: numericDelta(
+                  comparison[0].call_wall,
+                  comparison[1].call_wall,
                 ),
               },
               {
                 label: "Put Wall",
                 left: formatNumber(comparison[0].put_wall),
                 right: formatNumber(comparison[1].put_wall),
-                delta: signed(
-                  (comparison[1].put_wall ?? 0) - (comparison[0].put_wall ?? 0),
+                delta: numericDelta(
+                  comparison[0].put_wall,
+                  comparison[1].put_wall,
                 ),
               },
               {
                 label: "Gamma Flip",
                 left: formatNumber(comparison[0].gamma_flip),
                 right: formatNumber(comparison[1].gamma_flip),
-                delta: signed(
-                  (comparison[1].gamma_flip ?? 0) - (comparison[0].gamma_flip ?? 0),
+                delta: numericDelta(
+                  comparison[0].gamma_flip,
+                  comparison[1].gamma_flip,
                 ),
               },
             ].map((metric) => (

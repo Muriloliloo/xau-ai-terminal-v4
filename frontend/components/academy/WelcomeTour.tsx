@@ -1,6 +1,9 @@
 "use client";
 
+import { useRef } from "react";
+
 import { useAcademy } from "@/components/academy/AcademyProvider";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 
 const TOUR_STEPS = [
   {
@@ -55,6 +58,8 @@ export function WelcomeTour() {
     previousTourStep,
     tourStep,
   } = useAcademy();
+  const dialogRef = useRef<HTMLElement>(null);
+  useDialogFocus(isTourOpen, dialogRef, finishTour);
   if (!isTourOpen) return null;
 
   const step = TOUR_STEPS[tourStep] ?? TOUR_STEPS[0];
@@ -63,9 +68,11 @@ export function WelcomeTour() {
   return (
     <div className="fixed inset-0 z-[90] grid place-items-center bg-black/75 p-4 backdrop-blur-sm">
       <section
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="welcome-tour-title"
+        tabIndex={-1}
         className="workspace-scale w-full max-w-lg overflow-hidden rounded-xl border border-terminal-accent/40 bg-terminal-card shadow-[0_30px_100px_rgb(0_0_0/55%)]"
       >
         <div className="h-px bg-gradient-to-r from-transparent via-terminal-accent to-transparent" />
@@ -113,6 +120,7 @@ export function WelcomeTour() {
           <button
             type="button"
             onClick={finishTour}
+            data-dialog-initial-focus
             className="text-xs text-terminal-muted hover:text-terminal-text"
           >
             Pular tour

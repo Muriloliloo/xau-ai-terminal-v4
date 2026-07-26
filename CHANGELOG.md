@@ -7,6 +7,41 @@ Alpha e não adota releases estáveis.
 
 ## [Unreleased]
 
+### Institutional Copilot — Knowledge Engine
+
+- criada a rota `/copilot` com mensagens, histórico local, perguntas rápidas,
+  sugestões e drawer responsivo;
+- criado Knowledge Engine determinístico para Dealer Report, Replay, Heatmap,
+  Analytics, AI Summary, Open Interest, GEX, Gamma e Volatility;
+- respostas passaram a listar explicitamente os indicadores internos usados;
+- perguntas sem dados retornam `Não há dados suficientes.`;
+- histórico do chat ganhou validação e limites seguros no LocalStorage;
+- criada abstração `CopilotProvider` e factory para futura integração com GPT,
+  Claude ou outro LLM sem alterar a interface;
+- nenhuma API, engine ou fórmula quantitativa foi modificada.
+
+### Sprint 10 — Quality Gate e Performance
+
+- auditadas todas as rotas web, navegação direta, Sidebar e atualização de rota
+  dinâmica;
+- adicionados error boundary global e página amigável para rotas inexistentes;
+- corrigidos foco, restauração de foco, ciclo por Tab e fechamento por ESC nos
+  overlays da Academy;
+- tooltips passaram a vincular gatilho e descrição com `aria-describedby`;
+- padronizados estados ausentes como `Indisponível`, números e percentuais em
+  pt-BR e proteção contra `NaN`, `Infinity` e timestamps inválidos;
+- endurecida a leitura de preferências, favoritos e progresso da Academy no
+  LocalStorage, com defaults seguros para dados corrompidos;
+- mensagens de erro do frontend e do CSV demonstrativo deixaram de expor
+  caminhos locais ou detalhes técnicos;
+- corrigida a comparação cronológica de snapshots e a diferença de campos
+  ausentes, sem tratá-los como zero;
+- conteúdo e overlays da Academy passaram a ser carregados sob demanda;
+- removidos aliases educacionais sem consumidores comprovados;
+- adicionada suíte frontend para providers, fallback, Market Summary, Replay,
+  comparação, formatação, persistência, erros e contratos responsivos;
+- APIs, contratos e engines quantitativos foram preservados.
+
 ### Sprint 4 — Volatility Engine
 
 - criado `VolatilityEngine` para IV disponível no CSV, sem spot ou histórico

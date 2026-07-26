@@ -1,4 +1,8 @@
-import { formatNumber, formatPercent } from "@/lib/formatters";
+import {
+  formatNumber,
+  formatPercent,
+  UNAVAILABLE_LABEL,
+} from "@/lib/formatters";
 import type { VolatilityCurvePoint } from "@/types";
 
 interface VolatilitySmileProps {
@@ -90,7 +94,7 @@ export function VolatilitySmile({ rows }: VolatilitySmileProps) {
         </div>
         <div className="text-right font-mono text-[9px]">
           <span className="text-terminal-muted">
-            Vencimento: {selectedExpiry ?? "não informado"}
+            Vencimento: {selectedExpiry ?? UNAVAILABLE_LABEL}
           </span>
           {partialWarning ? (
             <span className="ml-2 text-terminal-flip">{partialWarning}</span>
