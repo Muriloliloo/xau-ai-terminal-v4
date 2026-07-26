@@ -9,6 +9,7 @@ import { GexMap } from "@/components/charts/GexMap";
 import { GexProfile } from "@/components/charts/GexProfile";
 import { OpenInterestDistribution } from "@/components/charts/OpenInterestDistribution";
 import { VolatilitySmile } from "@/components/charts/VolatilitySmile";
+import { AiMarketSummary } from "@/components/institutional/AiMarketSummary";
 import { InstitutionalReport } from "@/components/institutional/InstitutionalReport";
 import { DashboardSkeleton } from "@/components/layout/DashboardSkeleton";
 import { ErrorState } from "@/components/layout/ErrorState";
@@ -135,6 +136,8 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
       />
 
       <div className="space-y-3">
+        <AiMarketSummary data={data} />
+
         <section aria-label="Estado do mercado" className="grid grid-cols-2 gap-3 xl:grid-cols-5">
           <MetricCard
             label="Regime"
