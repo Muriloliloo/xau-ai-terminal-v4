@@ -23,9 +23,19 @@ from backend.database.connection import initialize_database
 
 def _cors_origins() -> list[str]:
     configured = os.getenv("XAU_CORS_ORIGINS")
+
     if configured:
-        return [origin.strip() for origin in configured.split(",") if origin.strip()]
-    return ["http://localhost:3000", "http://127.0.0.1:3000"]
+        return [
+            origin.strip()
+            for origin in configured.split(",")
+            if origin.strip()
+        ]
+
+    return [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://xau-ai-terminal-v4.vercel.app",
+    ]
 
 
 @asynccontextmanager
