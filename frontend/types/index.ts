@@ -1,0 +1,326 @@
+export interface GexStrikeRow {
+  strike: number;
+  call_gex: number;
+  put_gex: number;
+  net_gex: number;
+  open_interest: number;
+  volume: number;
+}
+
+export interface OpenInterestSummary {
+  call_oi_total: number;
+  put_oi_total: number;
+  net_oi: number;
+  largest_call_oi_strike: number | null;
+  largest_put_oi_strike: number | null;
+  new_oi_total: number;
+  reduced_oi_total: number;
+  largest_oi_increase_strike: number | null;
+  largest_oi_decrease_strike: number | null;
+  max_concentration_pct: number;
+  has_previous_open_interest: boolean;
+}
+
+export interface OpenInterestStrike {
+  rank: number;
+  strike: number;
+  call_oi: number;
+  put_oi: number;
+  total_oi: number;
+  net_oi: number;
+  percentage: number;
+}
+
+export interface OpenInterestAnalysis {
+  source_name: string;
+  source_mode: "demo" | "upload";
+  generated_at: string;
+  call_oi_total: number;
+  put_oi_total: number;
+  total_oi: number;
+  net_oi: number;
+  largest_concentration_strike: number | null;
+  largest_concentration_pct: number;
+  oi_concentration_score: number;
+  top_10_strikes: OpenInterestStrike[];
+  distribution_by_strike: OpenInterestStrike[];
+}
+
+export interface DealerOpenInterestContext {
+  net_oi: number;
+  dominant_strike: number | null;
+  largest_concentration_pct: number;
+  concentration_score: number;
+  top_10_share_pct: number;
+}
+
+export interface GammaExposureStrike {
+  strike: number;
+  call_gex: number;
+  put_gex: number;
+  net_gex: number;
+  total_gex: number;
+  cumulative_net_gex: number;
+  call_oi: number;
+  put_oi: number;
+  contribution_pct: number;
+  dealer_pressure: string;
+}
+
+export interface GammaExposureAnalysis {
+  source_name: string;
+  source_mode: "demo" | "upload";
+  generated_at: string;
+  call_gex: number;
+  put_gex: number;
+  net_gex: number;
+  total_gex: number;
+  largest_positive_gex_strike: number | null;
+  largest_positive_gex: number;
+  largest_negative_gex_strike: number | null;
+  largest_negative_gex: number;
+  dealer_pressure: string;
+  dealer_pressure_score: number;
+  gamma_flip: number | null;
+  gamma_magnet: number | null;
+  gamma_source: "provided" | "estimated" | "mixed";
+  contract_multiplier: number;
+  spot_adjusted: boolean;
+  curve_by_strike: GammaExposureStrike[];
+}
+
+export interface DealerGammaExposureContext {
+  net_gex: number;
+  total_gex: number;
+  dealer_pressure: string;
+  dealer_pressure_score: number;
+  largest_positive_gex_strike: number | null;
+  largest_negative_gex_strike: number | null;
+}
+
+export interface VolatilitySummary {
+  weighted_iv: number | null;
+  call_iv: number | null;
+  put_iv: number | null;
+  iv_skew: number | null;
+  call_skew: number | null;
+  put_skew: number | null;
+  skew_classification: string | null;
+  minimum_iv: number | null;
+  maximum_iv: number | null;
+  highest_iv_strike: number | null;
+  lowest_iv_strike: number | null;
+  weighted_iv_change: number | null;
+  largest_iv_increase_strike: number | null;
+  largest_iv_increase: number | null;
+  largest_iv_decrease_strike: number | null;
+  largest_iv_decrease: number | null;
+  has_iv: boolean;
+  has_previous_iv: boolean;
+}
+
+export interface ExpectedMove {
+  available: boolean;
+  reason: string;
+  expected_move_points: number | null;
+  expected_move_pct: number | null;
+  upper_level: number | null;
+  lower_level: number | null;
+  expiry: string | null;
+}
+
+export interface VolatilityCurvePoint {
+  strike: number;
+  call_iv: number | null;
+  put_iv: number | null;
+  weighted_iv: number | null;
+  expiry: string | null;
+}
+
+export interface VolatilityExpiryPoint {
+  expiry: string | null;
+  call_iv: number | null;
+  put_iv: number | null;
+  weighted_iv: number | null;
+  minimum_iv: number | null;
+  maximum_iv: number | null;
+}
+
+export interface VolatilityAnalysis {
+  source_name: string;
+  source_mode: "demo" | "upload";
+  generated_at: string;
+  volatility_summary: VolatilitySummary;
+  expected_move: ExpectedMove;
+  volatility_curve: VolatilityCurvePoint[];
+  expiry_curve: VolatilityExpiryPoint[];
+  iv_rank: null;
+  iv_percentile: null;
+}
+
+export interface GammaSummaryV2 {
+  call_gex_total: number;
+  put_gex_total: number;
+  net_gex_total: number;
+  gross_gex_total: number;
+  strongest_positive_gex_strike: number | null;
+  strongest_negative_gex_strike: number | null;
+  gamma_flip: number | null;
+  gamma_magnet: number | null;
+  call_wall: number | null;
+  put_wall: number | null;
+  distance_flip_to_call_wall: number | null;
+  distance_flip_to_put_wall: number | null;
+  gex_concentration_by_region: {
+    below_flip: number;
+    at_flip: number;
+    above_flip: number;
+  };
+  regime_strength: string;
+}
+
+export interface DealerReportV2 {
+  regime: string;
+  intensity: string;
+  dealer_bias: string;
+  expected_hedging: string;
+  expected_volatility: string;
+  breakout_risk: string;
+  reversal_risk: string;
+  critical_level_proximity: string;
+  institutional_score: number;
+  confidence: number;
+  critical_level: number | null;
+  decision_factors: string[];
+  commentary: string;
+  educational_action: string;
+  open_interest_context: DealerOpenInterestContext | null;
+  gamma_exposure_context: DealerGammaExposureContext | null;
+}
+
+export interface StrikeTableRow extends GexStrikeRow {
+  cumulative_gex: number;
+  call_oi: number;
+  put_oi: number;
+  net_oi: number;
+  previous_call_oi: number;
+  previous_put_oi: number;
+  call_oi_change: number;
+  put_oi_change: number;
+  concentration_pct: number;
+}
+
+export interface DealerReport {
+  title: string;
+  regime: string;
+  explanation: string;
+  suggested_action: string;
+  risk_statement: string;
+  critical_level: number | null;
+  educational_notice: string;
+}
+
+export interface AnalysisResponse {
+  call_wall: number | null;
+  put_wall: number | null;
+  gamma_flip: number | null;
+  gamma_magnet: number | null;
+  gex_total: number;
+  regime: string;
+  dealer_bias: string;
+  confidence: number;
+  volatility: string;
+  risk: string;
+  price: number | null;
+  price_change_percent: number | null;
+  commentary: string;
+  decision: string;
+  report: DealerReport;
+  alerts: string[];
+  gex_by_strike: GexStrikeRow[];
+  open_interest_summary: OpenInterestSummary;
+  open_interest_analysis: OpenInterestAnalysis | null;
+  gamma_exposure_analysis: GammaExposureAnalysis | null;
+  volatility_analysis: VolatilityAnalysis | null;
+  gamma_summary: GammaSummaryV2;
+  dealer_report: DealerReportV2;
+  strike_table: StrikeTableRow[];
+  source_name: string;
+  source_mode: "demo" | "upload";
+  generated_at: string;
+  source_updated_at: string | null;
+  source_is_stale: boolean;
+  snapshot_id: number | null;
+  snapshot_saved_automatically: boolean;
+}
+
+export interface InstitutionalLevels {
+  callWall: number | null;
+  putWall: number | null;
+  gammaFlip: number | null;
+  gammaMagnet: number | null;
+}
+
+export type AlertSeverity = "critical" | "warning" | "info" | "success";
+export type AlertState = "active" | "monitoring" | "resolved";
+
+export interface MarketAlert {
+  id: string;
+  severity: AlertSeverity;
+  title: string;
+  description: string;
+  timestamp: string;
+  state: AlertState;
+}
+
+export interface HealthResponse {
+  status: "ok";
+  name: string;
+  version: string;
+}
+
+export interface HistoryRecord {
+  id: number;
+  created_at: string | null;
+  call_wall: number | null;
+  put_wall: number | null;
+  gamma_flip: number | null;
+  gamma_magnet: number | null;
+  gex_total: number | null;
+  regime: string | null;
+  dealer_bias: string | null;
+  confidence: number | null;
+}
+
+export interface SnapshotSummary {
+  id: number;
+  created_at: string;
+  schema_version: number;
+  source_name: string;
+  source_mode: "demo" | "upload";
+  is_automatic: boolean;
+  label: string | null;
+  call_wall: number | null;
+  put_wall: number | null;
+  gamma_flip: number | null;
+  gamma_magnet: number | null;
+  gex_total: number;
+  net_oi: number;
+  regime: string;
+  dealer_bias: string;
+  confidence: number;
+  institutional_score: number;
+}
+
+export interface SnapshotDetail extends SnapshotSummary {
+  analysis: AnalysisResponse;
+}
+
+export interface SettingsResponse {
+  name: string;
+  version: string;
+  sample_csv_available: boolean;
+  history_mode: string;
+  scheduler_enabled: boolean;
+  realtime_data_enabled: boolean;
+}
