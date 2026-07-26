@@ -36,6 +36,7 @@ def _analysis_mapping(
 
 def _detail_from_record(record: dict[str, Any]) -> SnapshotDetail:
     payload = SnapshotEngine.deserialize(record.pop("analysis_json"))
+    record["data_metadata"] = payload.get("data_metadata")
     payload["snapshot_id"] = record["id"]
     payload["snapshot_saved_automatically"] = bool(record["is_automatic"])
     return SnapshotDetail(
@@ -67,10 +68,12 @@ def create_snapshot(
 
 
 def list_snapshots(*, limit: int = 100) -> list[SnapshotSummary]:
-    return [
-        SnapshotSummary.model_validate(record)
-        for record in list_snapshot_records(limit=limit)
-    ]
+    summaries: list[SnapshotSummary] = []
+    for record in list_snapshot_records(limit=limit):
+        payload = SnapshotEngine.deserialize(record.pop("analysis_json"))
+        record["data_metadata"] = payload.get("data_metadata")
+        summaries.append(SnapshotSummary.model_validate(record))
+    return summaries
 
 
 def get_snapshot(snapshot_id: int) -> SnapshotDetail:

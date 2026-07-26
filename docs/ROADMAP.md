@@ -1,7 +1,7 @@
 # Roadmap
 
 > Versão atual: 3.0 Alpha  
-> Atualizado em: 2026-07-23
+> Atualizado em: 2026-07-26
 
 ## Princípios
 
@@ -49,11 +49,11 @@
 - [x] 11 testes legados aprovados;
 - [x] imports locais do frontend auditados;
 - [x] hash do Gamma Engine preservado;
-- [ ] instalar dependências FastAPI/Pydantic/HTTPX e executar toda a suíte;
-- [ ] instalar dependências Node e executar `npm run lint`;
-- [ ] executar `npm run typecheck`;
-- [ ] executar `npm run build`;
-- [ ] subir os dois processos e validar a comunicação HTTP no navegador.
+- [x] instalar dependências FastAPI/Pydantic/HTTPX e executar toda a suíte;
+- [x] instalar dependências Node e executar `npm run lint`;
+- [x] executar `npm run typecheck`;
+- [x] executar `npm run build`;
+- [x] validar a comunicação pelos contratos HTTP e TestClient.
 
 O ciclo só pode ser marcado como concluído quando todos os gates acima estiverem
 verdes.
@@ -110,6 +110,26 @@ verdes.
 - [x] comparação histórica e compatibilidade com snapshots antigos;
 - [x] testes unitários e contratos HTTP;
 - [x] engines protegidos preservados.
+
+## Concluído — Sprint 11: Real Data Foundation
+
+- [x] contrato normalizado de spot, cadeia e metadata;
+- [x] factory/registry com Alpha Vantage, manual, CSV e demo;
+- [x] Alpha Vantage opcional para spot e histórico oficial;
+- [x] cache TTL, retry limitado e erros sanitizados;
+- [x] importação manual com prévia e confirmação;
+- [x] endpoints internos de provider/market data;
+- [x] badges e painel Fontes de Dados;
+- [x] provenance em snapshots, Replay e Copilot;
+- [x] compatibilidade de snapshots antigos;
+- [x] testes externos mockados e script controlado separado;
+- [x] decisão documentada de não fazer scraping Cboe;
+- [x] engines protegidos preservados.
+
+Próximos passos de dados: validar uma chave real em ambiente autorizado,
+monitorar consumo de cota gratuita, avaliar uma API oficial/licenciada de option
+chain e adicionar circuit breaker apenas quando houver operação externa
+recorrente.
 
 ## Próximo ciclo — Governança de persistência e estado
 

@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from backend.schemas.analysis import AnalysisResponse
+from backend.schemas.market_data import DataMetadataResponse
 
 
 class SnapshotCreateRequest(BaseModel):
@@ -30,6 +31,7 @@ class SnapshotSummary(BaseModel):
     dealer_bias: str
     confidence: float = Field(ge=0, le=100)
     institutional_score: float = Field(ge=0, le=100)
+    data_metadata: DataMetadataResponse | None = None
 
 
 class SnapshotDetail(SnapshotSummary):

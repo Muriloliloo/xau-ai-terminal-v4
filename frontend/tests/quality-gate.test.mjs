@@ -249,6 +249,15 @@ function knowledgeFixture(overrides = {}) {
       sourceName: "sample_options.csv",
       generatedAt: "2026-07-26T18:00:00Z",
       snapshotId: 7,
+      provider: "demo",
+      freshnessType: "demo",
+      marketTimestamp: null,
+      delayMinutes: null,
+      isDemo: true,
+      isManual: false,
+      fallbackUsed: true,
+      warnings: ["Dados demonstrativos."],
+      missingFields: ["live_spot"],
     },
     ...overrides,
   };
@@ -546,6 +555,68 @@ test("Knowledge Engine não inventa dados ausentes", () => {
   });
   assert.equal(unrelated.summary, "Não há dados suficientes.");
   assert.deepEqual(unrelated.citations, []);
+});
+
+test("Knowledge Engine responde insuficiente na ausência total de dados", () => {
+  const engine = loadTypeScript("lib/copilot/knowledgeEngine.ts");
+  const answer = engine.generateKnowledgeAnswer(
+    "Qual é o regime?",
+    knowledgeFixture({
+      dealerReport: null,
+      replay: [],
+      heatmap: [],
+      analytics: {
+        confidence: null,
+        risk: null,
+        volatility: null,
+        decision: null,
+        institutionalScore: null,
+        alerts: [],
+        callWall: null,
+        putWall: null,
+        gammaFlip: null,
+        gammaMagnet: null,
+      },
+      aiSummary: null,
+      openInterest: null,
+      gex: null,
+      gamma: null,
+      volatility: null,
+    }),
+  );
+
+  assert.equal(answer.status, "insufficient");
+  assert.equal(answer.summary, "Não há dados suficientes.");
+  assert.deepEqual(answer.citations, []);
+});
+
+test("Knowledge Engine declara atraso e não promove dados para tempo real", () => {
+  const engine = loadTypeScript("lib/copilot/knowledgeEngine.ts");
+  const answer = engine.generateKnowledgeAnswer(
+    "Qual é o regime e a estratégia?",
+    knowledgeFixture({
+      metadata: {
+        sourceName: "gold-provider",
+        generatedAt: "2026-07-26T18:00:00Z",
+        snapshotId: 8,
+        provider: "alpha_vantage",
+        freshnessType: "delayed",
+        marketTimestamp: "2026-07-26T17:45:00Z",
+        delayMinutes: 15,
+        isDemo: false,
+        isManual: false,
+        fallbackUsed: false,
+        warnings: [],
+        missingFields: [],
+      },
+    }),
+  );
+  const serialized = JSON.stringify(answer);
+
+  assert.match(serialized, /dados atrasados em aproximadamente 15 minutos/i);
+  assert.doesNotMatch(serialized, /Regime atual:/);
+  assert.doesNotMatch(serialized, /em tempo real/i);
+  assert.match(answer.citations[0].detail, /Atualidade: delayed/);
 });
 
 test("Knowledge Engine compara somente snapshots realmente disponíveis", () => {

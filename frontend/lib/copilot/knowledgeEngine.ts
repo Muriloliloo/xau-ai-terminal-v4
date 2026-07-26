@@ -144,10 +144,54 @@ function citation(
     context.metadata.snapshotId == null
       ? ""
       : ` · Snapshot #${context.metadata.snapshotId}`;
+  const provider = context.metadata.provider
+    ? ` · Provider: ${context.metadata.provider}`
+    : "";
+  const freshness = context.metadata.freshnessType
+    ? ` · Atualidade: ${context.metadata.freshnessType}`
+    : " · Atualidade não registrada";
   return {
     indicator,
-    detail: detail ?? `${source}${snapshot}`,
+    detail: detail ?? `${source}${provider}${freshness}${snapshot}`,
   };
+}
+
+function dataContext(context: KnowledgeContext): string[] {
+  const metadata = context.metadata;
+  let description: string;
+
+  if (metadata.isDemo || metadata.freshnessType === "demo") {
+    description =
+      "Com base em dados demonstrativos; não representam condições de mercado ao vivo.";
+  } else if (metadata.isManual || metadata.freshnessType === "manual") {
+    description =
+      "Com base em importação manual; a atualidade depende do arquivo confirmado.";
+  } else if (metadata.freshnessType === "delayed") {
+    description =
+      metadata.delayMinutes == null
+        ? "Com base em dados atrasados; o atraso exato não foi confirmado."
+        : `Com base em dados atrasados em aproximadamente ${metadata.delayMinutes} minutos.`;
+  } else if (metadata.freshnessType === "realtime") {
+    description = "Com base em dados classificados pelo provider como tempo real.";
+  } else if (metadata.freshnessType === "historical") {
+    description = "Com base em uma série histórica.";
+  } else if (metadata.freshnessType === "end_of_day") {
+    description = "Com base em dados de fechamento diário.";
+  } else {
+    description =
+      "A atualidade da fonte não está registrada neste snapshot.";
+  }
+
+  const facts = [description];
+  if (metadata.fallbackUsed) {
+    facts.push("O fallback de provider estava ativo nesta análise.");
+  }
+  if (metadata.missingFields?.length) {
+    facts.push(
+      `Campos indisponíveis: ${metadata.missingFields.slice(0, 6).join(", ")}.`,
+    );
+  }
+  return facts;
 }
 
 function addCitation(
@@ -169,7 +213,7 @@ function buildOverview(
   const facts: string[] = [];
 
   if (present(summary?.marketRegime)) {
-    facts.push(`Regime atual: ${summary.marketRegime}.`);
+    facts.push(`Regime no arquivo analisado: ${summary.marketRegime}.`);
   }
   if (present(summary?.dealerBias)) {
     facts.push(`Dealer Bias: ${summary.dealerBias}.`);
@@ -182,7 +226,7 @@ function buildOverview(
   }
 
   if (facts.length) {
-    sections.push({ title: "Leitura atual", content: facts });
+    sections.push({ title: "Leitura do arquivo", content: facts });
     addCitation(citations, citation("AI Summary", context));
   }
 
@@ -536,6 +580,10 @@ export function generateKnowledgeAnswer(
   }
 
   const firstFact = sections[0]?.content[0];
+  sections.unshift({
+    title: "Contexto dos dados",
+    content: dataContext(context),
+  });
   return {
     status: "answered",
     summary: firstFact ?? INSUFFICIENT_DATA,

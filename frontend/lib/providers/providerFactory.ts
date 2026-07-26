@@ -1,4 +1,5 @@
 import { CsvProvider } from "@/lib/providers/csvProvider";
+import { ManualOptionsProvider } from "@/lib/providers/manualOptionsProvider";
 import type {
   OptionDataProvider,
   OptionProviderType,
@@ -12,6 +13,7 @@ type ProviderFactory = () => OptionDataProvider;
 
 const providerFactories = new Map<OptionProviderType, ProviderFactory>([
   ["csv", () => new CsvProvider()],
+  ["manual", () => new ManualOptionsProvider()],
 ]);
 
 class FallbackOptionDataProvider implements OptionDataProvider {
@@ -131,6 +133,12 @@ export function createOptionDataProvider(
   }
 
   const fallbackProvider = csvFactory();
+  if (requestedType === "auto") {
+    return new FallbackOptionDataProvider(
+      new ManualOptionsProvider(),
+      fallbackProvider,
+    );
+  }
   if (requestedType === "csv") return fallbackProvider;
 
   const requestedFactory = providerFactories.get(requestedType);
@@ -161,6 +169,10 @@ function getConfiguredProviderType(): OptionProviderType {
     ?.trim()
     .toLowerCase();
   const supportedTypes: OptionProviderType[] = [
+    "auto",
+    "manual",
+    "demo",
+    "alpha_vantage",
     "csv",
     "polygon",
     "tradier",
@@ -171,5 +183,5 @@ function getConfiguredProviderType(): OptionProviderType {
 
   return supportedTypes.includes(configured as OptionProviderType)
     ? (configured as OptionProviderType)
-    : "csv";
+    : "auto";
 }

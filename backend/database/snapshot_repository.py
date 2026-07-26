@@ -72,7 +72,7 @@ def list_snapshots(
         connection.row_factory = sqlite3.Row
         rows = connection.execute(
             f"""
-            SELECT {SUMMARY_COLUMNS}
+            SELECT {SUMMARY_COLUMNS}, analysis_json
             FROM institutional_snapshots
             ORDER BY created_at DESC, id DESC
             LIMIT ?

@@ -5,11 +5,15 @@ import type {
   GammaExposureAnalysis,
   HealthResponse,
   HistoryRecord,
+  ManualImportResponse,
+  MarketOptionsResponse,
+  MarketSpotResponse,
   OpenInterestAnalysis,
   SettingsResponse,
   SnapshotDetail,
   SnapshotSummary,
   VolatilityAnalysis,
+  ProvidersResponse,
 } from "@/types";
 
 export class ApiError extends Error {
@@ -92,6 +96,34 @@ export function getVolatility(): Promise<VolatilityAnalysis> {
 
 export function getSettings(): Promise<SettingsResponse> {
   return apiRequest<SettingsResponse>("/settings");
+}
+
+export function getProviders(): Promise<ProvidersResponse> {
+  return apiRequest<ProvidersResponse>("/providers");
+}
+
+export function getProvidersStatus(): Promise<ProvidersResponse> {
+  return apiRequest<ProvidersResponse>("/providers/status");
+}
+
+export function getMarketSpot(): Promise<MarketSpotResponse> {
+  return apiRequest<MarketSpotResponse>("/market/spot");
+}
+
+export function getMarketOptions(): Promise<MarketOptionsResponse> {
+  return apiRequest<MarketOptionsResponse>("/market/options");
+}
+
+export function importManualOptions(
+  file: File,
+  confirm = false,
+): Promise<ManualImportResponse> {
+  const body = new FormData();
+  body.append("file", file);
+  return apiRequest<ManualImportResponse>(
+    `/market/options/import?confirm=${confirm}`,
+    { method: "POST", body },
+  );
 }
 
 export function getSnapshots(): Promise<SnapshotSummary[]> {

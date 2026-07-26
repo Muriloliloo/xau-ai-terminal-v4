@@ -252,6 +252,109 @@ export interface AnalysisResponse {
   source_is_stale: boolean;
   snapshot_id: number | null;
   snapshot_saved_automatically: boolean;
+  data_metadata?: DataMetadata | null;
+}
+
+export type FreshnessType =
+  | "realtime"
+  | "delayed"
+  | "end_of_day"
+  | "historical"
+  | "manual"
+  | "demo"
+  | "unavailable";
+
+export interface DataMetadata {
+  provider: string;
+  source: string;
+  symbol: string;
+  retrieved_at: string;
+  market_timestamp: string | null;
+  delay_minutes: number | null;
+  freshness_type: FreshnessType;
+  is_demo: boolean;
+  is_manual: boolean;
+  is_partial: boolean;
+  warnings: string[];
+  missing_fields: string[];
+  status: "ready" | "unavailable" | "error";
+  fallback_used: boolean;
+}
+
+export interface ProviderStatus extends DataMetadata {
+  api_key_configured: boolean;
+  last_success: string | null;
+  last_error: string | null;
+  known_limit: string | null;
+  cache_ttl_seconds: number | null;
+  capabilities: string[];
+}
+
+export interface ProvidersResponse {
+  selected_provider: string;
+  fallback_enabled: boolean;
+  providers: ProviderStatus[];
+}
+
+export interface MarketSpotResponse {
+  data: {
+    price: number;
+    currency: string;
+    unit: string | null;
+  } | null;
+  metadata: DataMetadata;
+}
+
+export interface MarketOptionContract {
+  symbol: string | null;
+  expiration: string | null;
+  strike: number;
+  option_type: "CALL" | "PUT";
+  bid: number | null;
+  ask: number | null;
+  last: number | null;
+  volume: number;
+  open_interest: number;
+  previous_open_interest: number | null;
+  implied_volatility: number | null;
+  previous_iv: number | null;
+  delta: number | null;
+  gamma: number | null;
+  theta: number | null;
+  vega: number | null;
+  underlying_price: number | null;
+  timestamp: string | null;
+  source: string | null;
+  aggressor: number | null;
+  days_to_expiry: number | null;
+}
+
+export interface MarketOptionsResponse {
+  data: MarketOptionContract[];
+  metadata: DataMetadata;
+}
+
+export interface ImportIssue {
+  row: number;
+  field: string;
+  message: string;
+}
+
+export interface ManualImportResponse {
+  imported: boolean;
+  report: {
+    filename: string;
+    total_rows: number;
+    valid_rows: number;
+    invalid_rows: number;
+    can_import: boolean;
+    issues: ImportIssue[];
+    warnings: string[];
+    missing_fields: string[];
+    preview: Record<string, unknown>[];
+  };
+  metadata: DataMetadata | null;
+  analysis: AnalysisResponse | null;
 }
 
 export interface InstitutionalLevels {
@@ -310,6 +413,7 @@ export interface SnapshotSummary {
   dealer_bias: string;
   confidence: number;
   institutional_score: number;
+  data_metadata?: DataMetadata | null;
 }
 
 export interface SnapshotDetail extends SnapshotSummary {

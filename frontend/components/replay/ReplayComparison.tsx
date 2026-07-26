@@ -89,7 +89,8 @@ export function ReplayComparison({
                   {snapshots.map((snapshot) => (
                     <option key={snapshot.id} value={snapshot.id}>
                       #{snapshot.id} · {formatReplayTime(snapshot.created_at)} ·{" "}
-                      {snapshot.regime}
+                      {snapshot.regime} ·{" "}
+                      {snapshot.data_metadata?.provider ?? "fonte legada"}
                     </option>
                   ))}
                 </select>

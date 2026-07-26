@@ -88,6 +88,31 @@ Perguntas sem dados suficientes retornam explicitamente
 LLM futuro sem mudar a interface ou o contrato das mensagens. Consulte
 `docs/COPILOT.md`.
 
+## Sprint 11 — Real Data Foundation
+
+A camada `backend/providers/` adiciona aquisição normalizada, metadata de
+origem/atualidade, cache TTL e fallback observável. O sistema continua funcional
+sem chave: usa importação manual, arquivo local autorizado ou CSV demonstrativo
+conforme a configuração.
+
+Providers disponíveis:
+
+- Alpha Vantage opcional para spot de ouro/XAU e histórico diário documentado;
+- Manual Options Provider com validação, prévia e confirmação;
+- CSV Provider preservado para arquivo local autorizado;
+- Demo Provider preservado como fallback explícito.
+
+O provider Alpha Vantage classifica o spot de modo conservador como
+`delayed`; não há afirmação de tempo real sem garantia do plano. Cadeias de
+opções em tempo real exigem plano compatível e ficam indisponíveis nesta Sprint.
+Não foi implementado scraping de Cboe Delayed Quotes.
+
+Consulte:
+
+- `docs/DATA_PROVIDERS.md`;
+- `docs/FREE_DATA_LIMITATIONS.md`;
+- `docs/MANUAL_OPTION_IMPORT.md`.
+
 ## Requisitos
 
 - Python 3.12;
@@ -119,6 +144,37 @@ Endpoints:
 - `GET /api/open-interest`.
 - `GET /api/gex`.
 - `GET /api/volatility`.
+- `GET /api/providers`;
+- `GET /api/providers/status`;
+- `GET /api/market/spot`;
+- `GET /api/market/history`;
+- `GET /api/market/options`;
+- `GET /api/market/metadata`;
+- `POST /api/market/options/import`.
+
+### Configuração de dados
+
+Copie `.env.example` para `.env` no ambiente local. Variáveis principais:
+
+```dotenv
+MARKET_DATA_PROVIDER=auto
+ALPHA_VANTAGE_API_KEY=
+MARKET_DATA_CACHE_SECONDS=60
+MARKET_DATA_TIMEOUT_SECONDS=10
+ALLOW_DEMO_FALLBACK=true
+```
+
+A chave existe somente no backend. O frontend não usa
+`NEXT_PUBLIC_ALPHA_VANTAGE_API_KEY` nem qualquer outro segredo público.
+
+Teste controlado opcional, separado da suíte:
+
+```powershell
+python -m backend.scripts.test_market_provider
+```
+
+O comando mostra status e um resumo sanitizado, não executa engines e não cria
+snapshots. Sem chave válida, não comprova integração real.
 
 ## Frontend
 
@@ -133,6 +189,25 @@ Interface: `http://localhost:3000`.
 
 Por padrão, o frontend usa `http://localhost:8000/api`. Altere
 `NEXT_PUBLIC_API_URL` quando necessário.
+
+## Render e Vercel
+
+No serviço backend do Render:
+
+1. abra **Environment**;
+2. adicione `ALPHA_VANTAGE_API_KEY` como secret com a chave da sua conta;
+3. adicione `MARKET_DATA_PROVIDER=auto` (ou `alpha_vantage`);
+4. adicione `MARKET_DATA_CACHE_SECONDS=60`;
+5. adicione `MARKET_DATA_TIMEOUT_SECONDS=10`;
+6. adicione `ALLOW_DEMO_FALLBACK=true`;
+7. salve e faça novo deploy;
+8. confira `/api/providers/status` sem esperar que o valor da chave apareça;
+9. execute o script controlado no Shell do Render somente se desejar consumir
+   uma consulta do plano.
+
+No Vercel, configure apenas `NEXT_PUBLIC_API_URL` com a URL pública do backend
+seguida de `/api`. A chave privada não deve ser configurada no Vercel e nunca
+deve receber prefixo `NEXT_PUBLIC_`.
 
 ## Streamlit de referência
 

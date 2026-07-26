@@ -7,6 +7,7 @@ sequenceDiagram
     actor User as Usuário
     participant Web as Next.js
     participant API as FastAPI
+    participant Provider as Provider Factory
     participant Loader as Options Loader
     participant Gamma as Gamma V1/V2
     participant GEX as Gamma Exposure
@@ -17,7 +18,12 @@ sequenceDiagram
     participant Snapshot as Snapshot Service
     participant DB as SQLite
 
-    User->>Web: Abre dashboard ou envia CSV
+    User->>Web: Abre dashboard ou seleciona CSV
+    Web->>API: GET metadata/providers ou POST import preview
+    API->>Provider: seleciona fonte por capacidade
+    Provider-->>API: dados normalizados + freshness + origem
+    API-->>Web: status, prévia, avisos e fallback
+    User->>Web: confirma importação válida
     Web->>API: POST /api/analysis/demo ou upload
     API->>Loader: arquivo/amostra
     Loader-->>Gamma: DataFrame validado
@@ -40,6 +46,28 @@ sequenceDiagram
 O DataFrame é carregado uma vez. Gamma, Gamma Exposure, OI e Volatility são
 calculados no backend; o frontend somente formata, ordena e representa os
 valores.
+
+## Aquisição e fallback
+
+```text
+Alpha Vantage oficial (chave backend)
+        ↓ quando disponível/capaz
+Manual Options confirmado
+        ↓
+CSV local autorizado
+        ↓
+Demo explícito
+        ↓
+NormalizedOptionChain + ProviderMetadata
+```
+
+O cache é aplicado antes da chamada externa. Somente respostas válidas são
+armazenadas; timeout, rate limit e payload incompleto não ficam em cache.
+`GET /api/providers/status` não chama a rede.
+
+`GET /api/market/spot`, `/history`, `/options` e `/metadata` nunca criam
+snapshot. Falhas retornam metadata `unavailable` sem segredo, caminho local ou
+stack trace.
 
 O Open Interest Engine produz:
 
@@ -108,11 +136,17 @@ normalizados pelo loader.
 
 ```text
 Demo:   data/sample_options.csv -> loader -> análise
-Upload: FormData -> UploadFile.file -> loader -> mesma análise
+Upload legado: FormData -> UploadFile.file -> loader -> mesma análise
+Import manual: validar -> prévia -> confirmar -> loader -> análise + snapshot
 ```
 
-Extensão diferente de `.csv` retorna 415. Fonte ausente retorna 404. Estrutura ou
-domínio inválido retorna 422. Nenhum upload é persistido.
+Extensão diferente de `.csv` no upload legado retorna 415. Fonte ausente retorna
+404. Estrutura ou domínio inválido retorna 422. O arquivo bruto não é
+persistido; somente o resultado da análise confirmada entra no snapshot.
+
+O importador manual aceita vírgula/ponto e vírgula e decimal ponto/vírgula. Um
+arquivo inválido ou ainda não confirmado não altera o provider e não cria
+snapshot.
 
 ## Contrato de análise
 
@@ -123,6 +157,7 @@ AnalysisResponse
 │   ├── regime, dealer_bias, confidence, volatility
 │   ├── commentary, decision, report, alerts
 │   └── gex_by_strike e metadados da fonte
+├── data_metadata (opcional e aditivo)
 ├── open_interest_summary
 ├── open_interest_analysis
 ├── gamma_summary
@@ -173,6 +208,10 @@ números. Replay exige pelo menos dois snapshots. Volatility exige IV válida.
 Quando a fonte solicitada não existe no contexto, o Knowledge Engine retorna
 `Não há dados suficientes.`.
 
+O contexto inclui provider, source, freshness, atraso, campos ausentes e avisos.
+Respostas sobre dados manuais, demonstrativos, atrasados ou históricos declaram
+essa condição e não usam linguagem de tempo real.
+
 ## Snapshots
 
 ```text
@@ -191,6 +230,10 @@ Página Snapshots
 A comparação carrega dois detalhes e calcula deltas de apresentação no
 frontend, incluindo Call/Put OI, score e concentração. Nenhum engine é executado
 nesse fluxo.
+
+`data_metadata` vive no `analysis_json`, sem alterar o schema SQLite. A lista e o
+Replay expõem a origem efetiva de cada snapshot; registros legados mostram fonte
+não registrada.
 
 Snapshots Sprint 3 preservam `gamma_exposure_analysis`; a comparação também
 calcula deltas de Call/Put/GEX bruto, pressão e Gamma Magnet. Snapshots antigos

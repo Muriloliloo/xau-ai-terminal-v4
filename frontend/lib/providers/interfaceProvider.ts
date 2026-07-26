@@ -1,6 +1,10 @@
 import type { AnalysisResponse } from "@/types";
 
 export type OptionProviderType =
+  | "auto"
+  | "manual"
+  | "demo"
+  | "alpha_vantage"
   | "csv"
   | "polygon"
   | "tradier"

@@ -20,6 +20,13 @@ OpenAPI: `http://localhost:8000/api/docs`
 | GET | `/open-interest` | análise OI do CSV demonstrativo |
 | GET | `/gex` | Gamma Exposure completo do CSV demonstrativo |
 | GET | `/volatility` | IV, skew, curvas e Expected Move da amostra |
+| GET | `/providers` | catálogo e configuração sanitizada dos providers |
+| GET | `/providers/status` | status sem executar consulta externa |
+| GET | `/market/spot` | spot normalizado ou estado indisponível |
+| GET | `/market/history` | histórico diário normalizado |
+| GET | `/market/options` | cadeia efetiva e metadata |
+| GET | `/market/metadata` | metadata por capacidade |
+| POST | `/market/options/import` | prévia/confirmacão de CSV manual |
 
 ## Análise V2
 
@@ -29,6 +36,21 @@ adicionam blocos institucionais compatíveis.
 As respostas também retornam `snapshot_id` e
 `snapshot_saved_automatically=true`. A persistência acontece antes da resposta
 HTTP ser concluída.
+
+`data_metadata` é aditivo e opcional. Ele informa provider, source, símbolo,
+horários, atraso, classe de atualidade, estados demo/manual/parcial, warnings,
+campos ausentes e fallback. Snapshots antigos sem o bloco continuam válidos.
+
+## Market data
+
+Todos os endpoints `GET /market/*` são somente leitura e não criam snapshots.
+Quando o provider não está configurado ou o recurso é premium, retornam estado
+`unavailable` com dados nulos/vazios e mensagem sanitizada.
+
+`POST /market/options/import` usa `confirm=false` por padrão. Nesse modo apenas
+valida e devolve prévia. `confirm=true` executa os mesmos engines dos endpoints
+de análise, atualiza o Manual Options Provider e cria o snapshot automático.
+Arquivo inválido não altera estado.
 
 ### `open_interest_analysis`
 
@@ -233,8 +255,11 @@ o dashboard.
 | 415 | upload sem extensão `.csv` |
 | 422 | colunas ausentes, tipos ou domínios inválidos |
 
-## CORS e tempo real
+## CORS e atualidade
 
 Origins locais `localhost:3000` e `127.0.0.1:3000` são permitidas. Não existe
-integração de preço ou fluxo ao vivo; `price` e `price_change_percent` permanecem
-`null`.
+fluxo de opções ao vivo nesta Sprint. O spot opcional do Alpha Vantage é
+classificado como atrasado enquanto o plano não comprovar tempo real. Na análise,
+`price` só é preenchido quando o arquivo manual contém um
+`underlying_price` único e válido; `price_change_percent` permanece `null`. O
+spot externo não é injetado automaticamente nos engines nem em snapshots.

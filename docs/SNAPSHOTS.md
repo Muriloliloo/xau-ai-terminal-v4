@@ -73,6 +73,12 @@ Snapshots criados a partir da Sprint 4 preservam `volatility_analysis`:
 resumo IV, Expected Move e curvas por strike/vencimento. O schema SQLite
 continua inalterado.
 
+Snapshots criados a partir da Sprint 11 também preservam `data_metadata` dentro
+de `analysis_json`: provider, source, freshness, atraso, coleta, timestamp de
+mercado, flags demo/manual, warnings e campos ausentes. Não houve migração SQL.
+Snapshots antigos retornam `data_metadata=null` e continuam reconstruindo o
+dashboard.
+
 ## Fluxos
 
 ### Automático

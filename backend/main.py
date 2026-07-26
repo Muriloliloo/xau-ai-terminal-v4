@@ -12,6 +12,7 @@ from backend.api import (
     gex,
     health,
     history,
+    market_data,
     open_interest,
     settings,
     snapshots,
@@ -69,3 +70,4 @@ app.include_router(snapshots.router, prefix="/api")
 app.include_router(open_interest.router, prefix="/api")
 app.include_router(gex.router, prefix="/api")
 app.include_router(volatility.router, prefix="/api")
+app.include_router(market_data.router, prefix="/api")

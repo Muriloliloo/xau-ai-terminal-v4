@@ -51,9 +51,21 @@ export function buildKnowledgeContext(
     gamma: analysis.gamma_summary ?? null,
     volatility: analysis.volatility_analysis ?? null,
     metadata: {
-      sourceName: analysis.source_name || null,
+      sourceName:
+        analysis.data_metadata?.source ?? (analysis.source_name || null),
       generatedAt: analysis.generated_at || null,
       snapshotId: selectedSnapshotId ?? null,
+      provider: analysis.data_metadata?.provider ?? null,
+      freshnessType: analysis.data_metadata?.freshness_type ?? null,
+      marketTimestamp: analysis.data_metadata?.market_timestamp ?? null,
+      delayMinutes: finiteOrNull(analysis.data_metadata?.delay_minutes),
+      isDemo:
+        analysis.data_metadata?.is_demo ?? analysis.source_mode === "demo",
+      isManual:
+        analysis.data_metadata?.is_manual ?? analysis.source_mode === "upload",
+      fallbackUsed: analysis.data_metadata?.fallback_used ?? false,
+      warnings: analysis.data_metadata?.warnings ?? [],
+      missingFields: analysis.data_metadata?.missing_fields ?? [],
     },
   };
 }

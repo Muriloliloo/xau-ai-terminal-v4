@@ -7,7 +7,7 @@ import {
   formatTime,
   UNAVAILABLE_LABEL,
 } from "@/lib/formatters";
-import type { AnalysisResponse } from "@/types";
+import type { AnalysisResponse, MarketSpotResponse } from "@/types";
 
 interface MarketHeaderProps {
   data: AnalysisResponse | null;
@@ -17,6 +17,7 @@ interface MarketHeaderProps {
   onSave?: () => void;
   saving?: boolean;
   saveStatus?: string | null;
+  spot?: MarketSpotResponse | null;
 }
 
 export function MarketHeader({
@@ -27,8 +28,11 @@ export function MarketHeader({
   onSave,
   saving = false,
   saveStatus,
+  spot,
 }: MarketHeaderProps) {
-  const priceAvailable = data?.price != null;
+  const metadata = data?.data_metadata;
+  const displayedPrice = spot?.data?.price ?? data?.price;
+  const priceAvailable = displayedPrice != null;
   const statusLabel = {
     loading: "Conectando à API",
     connected: "API conectada",
@@ -55,15 +59,20 @@ export function MarketHeader({
           <div className="h-8 w-px bg-terminal-border" aria-hidden />
           <div className="min-w-36">
             <p className="font-mono text-[9px] uppercase tracking-[0.13em] text-terminal-muted">
-              Preço atual
+              Preço da fonte
             </p>
             <p
               className={`mt-0.5 font-mono text-sm font-semibold ${
                 priceAvailable ? "text-terminal-text" : "text-terminal-muted"
               }`}
             >
-              {priceAvailable ? formatNumber(data.price) : UNAVAILABLE_LABEL}
+              {priceAvailable ? formatNumber(displayedPrice) : UNAVAILABLE_LABEL}
             </p>
+            {spot?.data ? (
+              <p className="mt-0.5 font-mono text-[9px] text-terminal-muted">
+                {spot.metadata.provider} · {spot.metadata.freshness_type}
+              </p>
+            ) : null}
           </div>
           <div>
             <p className="font-mono text-[9px] uppercase tracking-[0.13em] text-terminal-muted">
@@ -80,19 +89,31 @@ export function MarketHeader({
             label={statusLabel}
             tone={statusTone}
           />
-          <FreshnessIndicator generatedAt={data?.generated_at} />
-          {data?.source_mode === "demo" ? (
-            <StatusBadge label="Dados demonstrativos" tone="warning" />
+          <FreshnessIndicator
+            generatedAt={metadata?.market_timestamp ?? data?.generated_at}
+            freshnessType={metadata?.freshness_type}
+            delayMinutes={metadata?.delay_minutes}
+          />
+          {metadata?.fallback_used ? (
+            <StatusBadge label="Fallback ativo" tone="warning" />
           ) : null}
           {data?.snapshot_id ? (
             <StatusBadge label={`Snapshot #${data.snapshot_id}`} tone="neutral" />
           ) : null}
           <div className="min-w-28">
             <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-terminal-muted">
-              Atualização
+              Horário do mercado
             </p>
             <p className="mt-0.5 font-mono text-[11px] text-terminal-text">
-              {formatTime(data?.generated_at)}
+              {formatTime(metadata?.market_timestamp)}
+            </p>
+          </div>
+          <div className="min-w-28">
+            <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-terminal-muted">
+              Coleta
+            </p>
+            <p className="mt-0.5 font-mono text-[11px] text-terminal-text">
+              {formatTime(metadata?.retrieved_at ?? data?.generated_at)}
             </p>
           </div>
           <div className="min-w-32">
@@ -100,10 +121,16 @@ export function MarketHeader({
               Origem
             </p>
             <p
-              title={data?.source_name ?? "Nenhuma fonte carregada"}
+              title={
+                metadata
+                  ? `${metadata.provider} · ${metadata.source}`
+                  : data?.source_name ?? "Nenhuma fonte carregada"
+              }
               className="mt-0.5 max-w-40 truncate font-mono text-[11px] text-terminal-text"
             >
-              {data?.source_name ?? UNAVAILABLE_LABEL}
+              {metadata
+                ? `${metadata.provider} · ${metadata.source}`
+                : data?.source_name ?? UNAVAILABLE_LABEL}
             </p>
           </div>
           <button

@@ -17,6 +17,7 @@ flowchart LR
     DOMAIN --> CORE["Engines"]
     DOMAIN --> SERVICES["Services"]
     DOMAIN --> DB[("SQLite")]
+    PROVIDERS["Providers: Alpha / Manual / CSV / Demo"] --> API
     CSV["CSV upload/amostra"] --> API
     CSV --> STREAMLIT
 ```
@@ -32,6 +33,7 @@ XAU_AI_TERMINAL_V3/
 │   ├── core/
 │   ├── database/
 │   ├── models/
+│   ├── providers/
 │   ├── schemas/
 │   ├── services/
 │   └── tests/
@@ -76,6 +78,7 @@ XAU_AI_TERMINAL_V3/
 | `snapshots.py` | `/api/snapshots*` | CRUD e reconstrução de snapshots |
 | `open_interest.py` | `GET /api/open-interest` | Métricas OI da amostra |
 | `gex.py` | `GET /api/gex` | Perfil Gamma Exposure da amostra |
+| `market_data.py` | `/api/providers*`, `/api/market/*` | Providers, metadata, spot, histórico, opções e importação |
 
 Pydantic models em `backend/schemas/` definem o contrato HTTP. Models em
 `backend/models/` representam o domínio interno.
@@ -97,6 +100,23 @@ contexto ao Dealer Report sem alterar o Dealer Engine.
 
 `backend/services/institutional_analysis_service.py` orquestra loader, engines e
 models. Tanto a API quanto o Streamlit usam esse serviço.
+
+### Providers e normalização
+
+`backend/providers/` isola integrações externas e arquivos autorizados:
+
+- `interface_provider.py`: contrato comum;
+- `models.py`: spot, contratos, cadeia e metadata normalizados;
+- `provider_factory.py` e `provider_registry.py`: seleção/capacidades/fallback;
+- `provider_cache.py`: cache TTL em memória;
+- `provider_errors.py`: falhas públicas sanitizadas;
+- `alpha_vantage_provider.py`: integração oficial opcional;
+- `manual_options_provider.py`: validação e confirmação de upload;
+- `csv_provider.py` e `demo_provider.py`: fontes preservadas.
+
+O frontend consome apenas a API FastAPI. A chave Alpha Vantage nunca entra em
+bundles Next.js. A factory tenta somente fontes autorizadas e informa sempre a
+origem efetiva.
 
 ### SQLite
 
@@ -121,6 +141,7 @@ O frontend web 4.0 usa Next.js App Router e separa:
 - `components/institutional`: dashboard, upload, Dealer Report e confiança;
 - `components/snapshots`: listagem, ações e comparação;
 - `components/copilot`: chat, histórico, sugestões e respostas estruturadas;
+- `components/workspace`: telemetria dos providers e importação manual;
 - `lib/copilot`: Knowledge Engine, contexto, persistência e providers;
 - `lib/api.ts`: cliente HTTP central;
 - `lib/useRemoteResource.ts`: carregamento remoto e retry;
@@ -202,6 +223,12 @@ Engines, serviços e banco não foram duplicados: os imports apontam para `backe
 | `XAU_SAMPLE_CSV_PATH` | `data/sample_options.csv` |
 | `XAU_OUTPUT_DIR` | `outputs/` |
 | `XAU_CORS_ORIGINS` | origins locais do frontend |
+| `MARKET_DATA_PROVIDER` | `auto` |
+| `ALPHA_VANTAGE_API_KEY` | vazio; backend only |
+| `MARKET_DATA_CACHE_SECONDS` | `60` |
+| `MARKET_DATA_TIMEOUT_SECONDS` | `10` |
+| `ALLOW_DEMO_FALLBACK` | `true` |
+| `MARKET_DATA_CSV_PATH` | vazio |
 
 ### Frontend
 
@@ -223,6 +250,10 @@ Engines não importam interface, FastAPI ou SQLite.
 ## Limitações preservadas
 
 - sem dados em tempo real;
+- spot/histórico externos somente quando uma chave válida estiver configurada;
+- cadeia completa de opções ao vivo indisponível no plano gratuito integrado;
+- dados Alpha são classificados conservadoramente como atrasados/históricos;
+- sem scraping de páginas Cboe ou endpoints não documentados;
 - preço e variação retornam `null`;
 - histórico legado sem gravação; snapshots completos com gravação;
 - mudança de regime sem série temporal persistida;

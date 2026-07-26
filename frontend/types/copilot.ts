@@ -79,6 +79,15 @@ export interface KnowledgeContext {
     sourceName: string | null;
     generatedAt: string | null;
     snapshotId: number | null;
+    provider: string | null;
+    freshnessType: string | null;
+    marketTimestamp: string | null;
+    delayMinutes: number | null;
+    isDemo: boolean;
+    isManual: boolean;
+    fallbackUsed: boolean;
+    warnings: string[];
+    missingFields: string[];
   };
 }
 

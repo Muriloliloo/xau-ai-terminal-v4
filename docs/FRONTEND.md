@@ -23,6 +23,7 @@ O projeto segue a configuração oficial atual: Tailwind via
 | `/snapshots` | Lista, exclusão e comparação de snapshots |
 | `/snapshots/[id]` | Dashboard reconstruído do snapshot salvo |
 | `/settings` | Capacidades retornadas pela API |
+| `/system` | saúde, providers, cache, fallback e importação manual |
 
 ## Design system
 
@@ -108,9 +109,15 @@ QA executado:
 - Histórico chama `/history`;
 - Snapshots usa `/snapshots` para CRUD e reconstrução;
 - Settings chama `/settings`.
+- System chama `/providers/status` e oferece preview/confirm em
+  `/market/options/import`.
+- Dashboard consulta `/market/spot`; o resultado é exibido separadamente da
+  cadeia usada pelos engines.
 - o dashboard recebe `open_interest_analysis` junto da análise;
 
-`price: null` aparece como indisponível até existir fonte real.
+`price: null` aparece como indisponível até existir spot legítimo. Um arquivo
+manual pode preencher `underlying_price`; o spot Alpha Vantage é mostrado com
+provider e freshness próprios, sem ser injetado nos engines.
 
 O contrato também fornece:
 
@@ -148,6 +155,17 @@ estados visuais; a ausência de histórico de regime é declarada, não inferida
 
 Dados `source_mode: demo` exibem aviso explícito. Falha de saúde/análise mostra
 API indisponível, alerta crítico e botão para tentar novamente.
+
+O MarketHeader usa `data_metadata` para os badges exatos de tempo real
+confirmado, atraso, fechamento, histórico, manual, demonstração e
+indisponibilidade. Também mostra horário de mercado, coleta, provider, origem e
+fallback. Snapshots legados sem metadata usam estado neutro.
+
+A tela Sistema nunca mostra o valor da chave: apresenta somente
+configurada/ausente, capacidades, último sucesso, erro sanitizado, limite
+conhecido e TTL. A importação manual guarda a análise confirmada em
+`sessionStorage` para o provider do Dashboard; arquivo bruto não é persistido no
+navegador.
 
 O botão `Atualizar` refaz health e análise em paralelo. A validação integrada
 confirmou novo horário de snapshot e manutenção do estado “API conectada”.

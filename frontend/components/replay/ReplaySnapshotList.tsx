@@ -59,6 +59,11 @@ export function ReplaySnapshotList({
               <p className="mt-1 truncate text-[10px] text-terminal-muted">
                 {snapshot.dealer_bias}
               </p>
+              <p className="mt-1 truncate font-mono text-[9px] text-terminal-muted">
+                {snapshot.data_metadata
+                  ? `${snapshot.data_metadata.provider} · ${snapshot.data_metadata.freshness_type}`
+                  : "Fonte não registrada (snapshot legado)"}
+              </p>
             </button>
           );
         })}

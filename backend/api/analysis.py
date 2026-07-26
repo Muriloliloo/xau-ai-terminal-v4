@@ -29,6 +29,7 @@ from backend.schemas.analysis import (
     VolatilityExpiryResponse,
     VolatilitySummaryResponse,
 )
+from backend.schemas.market_data import DataMetadataResponse
 from backend.services.institutional_analysis_service import analyze_options
 from backend.services.snapshot_service import create_snapshot
 
@@ -173,6 +174,23 @@ def _optional_string(value: Any) -> str | None:
     return str(value)
 
 
+def _source_spot(analysis: InstitutionalAnalysis) -> float | None:
+    if "underlying_price" not in analysis.options.columns:
+        return None
+    values: list[float] = []
+    for value in analysis.options["underlying_price"].dropna():
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(number) and number > 0:
+            values.append(number)
+    if not values:
+        return None
+    tolerance = max(values) * 1e-9
+    return values[0] if max(values) - min(values) <= tolerance else None
+
+
 def build_volatility_response(
     analysis: InstitutionalAnalysis,
     *,
@@ -307,6 +325,7 @@ def _to_response(
     source_mode: str,
     generated_at: datetime,
     source_updated_at: datetime | None,
+    data_metadata: DataMetadataResponse | None = None,
 ) -> AnalysisResponse:
     dealer = _legacy_dealer(analysis)
     alerts = build_alerts(_legacy_summary(analysis), dealer)
@@ -342,6 +361,7 @@ def _to_response(
         confidence=analysis.dealer.confidence,
         volatility=analysis.dealer.volatility,
         risk=analysis.dealer.volatility,
+        price=_source_spot(analysis),
         commentary=analysis.commentary,
         decision=analysis.decision,
         report=_build_report(analysis),
@@ -359,6 +379,7 @@ def _to_response(
         generated_at=generated_at,
         source_updated_at=source_updated_at,
         source_is_stale=source_is_stale,
+        data_metadata=data_metadata,
     )
 
 
@@ -368,6 +389,7 @@ def _analyze(
     source_name: str,
     source_mode: str,
     source_updated_at: datetime | None = None,
+    data_metadata: DataMetadataResponse | None = None,
 ) -> AnalysisResponse:
     try:
         response = _to_response(
@@ -376,6 +398,7 @@ def _analyze(
             source_mode=source_mode,
             generated_at=datetime.now(UTC),
             source_updated_at=source_updated_at,
+            data_metadata=data_metadata,
         )
         snapshot = create_snapshot(response, is_automatic=True)
         return response.model_copy(
@@ -391,7 +414,7 @@ def _analyze(
         ) from error
     except (TypeError, ValueError) as error:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(error),
         ) from error
 
@@ -409,6 +432,24 @@ def analyze_demo() -> AnalysisResponse:
         source_name=sample_path.name,
         source_mode="demo",
         source_updated_at=sample_updated_at,
+        data_metadata=DataMetadataResponse(
+            provider="demo",
+            source=sample_path.name,
+            symbol="XAU",
+            retrieved_at=datetime.now(UTC),
+            market_timestamp=None,
+            delay_minutes=None,
+            freshness_type="demo",
+            is_demo=True,
+            is_manual=False,
+            is_partial=True,
+            warnings=[
+                "Dados demonstrativos locais; não representam o mercado em tempo real."
+            ],
+            missing_fields=["live_spot", "market_timestamp"],
+            status="ready" if sample_path.exists() else "unavailable",
+            fallback_used=True,
+        ),
     )
 
 
@@ -424,4 +465,22 @@ def analyze_upload(file: Annotated[UploadFile, File(...)]) -> AnalysisResponse:
         file.file,
         source_name=Path(source_name).name,
         source_mode="upload",
+        data_metadata=DataMetadataResponse(
+            provider="manual",
+            source=Path(source_name).name,
+            symbol="XAU",
+            retrieved_at=datetime.now(UTC),
+            market_timestamp=None,
+            delay_minutes=None,
+            freshness_type="manual",
+            is_demo=False,
+            is_manual=True,
+            is_partial=True,
+            warnings=[
+                "Dados importados manualmente; a atualidade depende do arquivo enviado."
+            ],
+            missing_fields=["market_timestamp"],
+            status="ready",
+            fallback_used=False,
+        ),
     )

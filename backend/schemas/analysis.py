@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from backend.schemas.market_data import DataMetadataResponse
+
 
 class GexStrikeRow(BaseModel):
     strike: float
@@ -262,3 +264,4 @@ class AnalysisResponse(BaseModel):
     source_is_stale: bool = False
     snapshot_id: int | None = None
     snapshot_saved_automatically: bool = False
+    data_metadata: DataMetadataResponse | None = None

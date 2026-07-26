@@ -7,6 +7,30 @@ Alpha e não adota releases estáveis.
 
 ## [Unreleased]
 
+### Sprint 11 — Real Data Foundation
+
+- criada camada backend de providers com contratos normalizados, registry,
+  factory, erros públicos estáveis e cache TTL thread-safe;
+- adicionados Alpha Vantage opcional, Manual Options, CSV autorizado e Demo
+  Provider, com fallback sempre identificado;
+- Alpha Vantage passou a suportar spot de ouro/XAU e histórico diário pelos
+  endpoints oficiais, sem rotular dados como tempo real sem garantia;
+- criada importação manual em duas etapas, com validação estrita, prévia,
+  relatório e confirmação antes de executar engines/salvar snapshot;
+- adicionados endpoints internos de providers, spot, histórico, opções,
+  metadata e importação;
+- respostas de análise e snapshots ganharam `data_metadata` opcional, mantendo
+  compatibilidade com registros antigos e sem migração SQLite;
+- Dashboard, Sistema, Replay e Copilot passaram a exibir provider, atualidade,
+  atraso, fallback, avisos e campos ausentes;
+- criado teste controlado `backend.scripts.test_market_provider`, separado do
+  build e sem escrita de snapshots;
+- documentados limites gratuitos/premium, importação autorizada, configuração
+  Render/Vercel e decisão de não fazer scraping de Cboe Delayed Quotes;
+- adicionados testes mockados de chave ausente, timeout, rate limit, payload
+  incompleto, cache, fallback, CSV, metadata e snapshots;
+- Gamma, Dealer, Snapshot e Open Interest Engines permaneceram inalterados.
+
 ### Institutional Copilot — Knowledge Engine
 
 - criada a rota `/copilot` com mensagens, histórico local, perguntas rápidas,

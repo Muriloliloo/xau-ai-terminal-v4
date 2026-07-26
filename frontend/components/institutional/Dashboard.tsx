@@ -20,6 +20,7 @@ import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
 import {
   createSnapshot,
   getHealth,
+  getMarketSpot,
   getSnapshot,
 } from "@/lib/api";
 import { buildMarketAlerts, findDominantStrike } from "@/lib/alerts";
@@ -36,21 +37,24 @@ import type {
   HealthResponse,
   InstitutionalLevels,
   MarketAlert,
+  MarketSpotResponse,
 } from "@/types";
 
 interface DashboardData {
   analysis: AnalysisResponse;
   health: HealthResponse;
+  spot: MarketSpotResponse | null;
 }
 
 const optionDataProvider = getOptionDataProvider();
 
 async function loadDashboard(): Promise<DashboardData> {
-  const [health, analysis] = await Promise.all([
+  const [health, analysis, spot] = await Promise.all([
     getHealth(),
     optionDataProvider.load(),
+    getMarketSpot(),
   ]);
-  return { analysis, health };
+  return { analysis, health, spot };
 }
 
 export function Dashboard({ snapshotId }: { snapshotId?: number }) {
@@ -60,7 +64,7 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
       getHealth(),
       getSnapshot(snapshotId),
     ]);
-    return { analysis: snapshot.analysis, health };
+    return { analysis: snapshot.analysis, health, spot: null };
   }, [snapshotId]);
   const { data: resource, error, loading, reload } = useRemoteResource(loader);
   const { preferences } = useWorkspace();
@@ -105,6 +109,7 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
           apiStatus="error"
           loading={loading}
           onRefresh={() => void reload()}
+          spot={resource?.spot}
         />
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
           <ErrorState
@@ -126,6 +131,7 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
           apiStatus="loading"
           loading
           onRefresh={() => void reload()}
+          spot={resource?.spot}
         />
         <DashboardSkeleton />
       </>
@@ -156,6 +162,7 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
         onSave={() => void saveCurrentSnapshot()}
         saving={saving}
         saveStatus={saveStatus}
+        spot={resource?.spot}
       />
 
       <div className="space-y-3">
