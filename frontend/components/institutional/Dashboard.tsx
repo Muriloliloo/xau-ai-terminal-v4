@@ -19,10 +19,10 @@ import {
   createSnapshot,
   getHealth,
   getSnapshot,
-  runDemoAnalysis,
 } from "@/lib/api";
 import { buildMarketAlerts, findDominantStrike } from "@/lib/alerts";
 import { formatCompact, formatNumber, formatPercent } from "@/lib/formatters";
+import { getOptionDataProvider } from "@/lib/providers/providerFactory";
 import { useRemoteResource } from "@/lib/useRemoteResource";
 import type {
   AnalysisResponse,
@@ -36,8 +36,13 @@ interface DashboardData {
   health: HealthResponse;
 }
 
+const optionDataProvider = getOptionDataProvider();
+
 async function loadDashboard(): Promise<DashboardData> {
-  const [health, analysis] = await Promise.all([getHealth(), runDemoAnalysis()]);
+  const [health, analysis] = await Promise.all([
+    getHealth(),
+    optionDataProvider.load(),
+  ]);
   return { analysis, health };
 }
 

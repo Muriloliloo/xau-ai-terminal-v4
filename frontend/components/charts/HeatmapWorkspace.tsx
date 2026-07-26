@@ -4,12 +4,18 @@ import { GammaCurve } from "@/components/charts/GammaCurve";
 import { GexMap } from "@/components/charts/GexMap";
 import { ErrorState } from "@/components/layout/ErrorState";
 import { Header } from "@/components/layout/Header";
-import { runDemoAnalysis } from "@/lib/api";
+import { getOptionDataProvider } from "@/lib/providers/providerFactory";
 import { useRemoteResource } from "@/lib/useRemoteResource";
 import type { InstitutionalLevels } from "@/types";
 
+const optionDataProvider = getOptionDataProvider();
+
+function loadAnalysis() {
+  return optionDataProvider.load();
+}
+
 export function HeatmapWorkspace() {
-  const { data, error, reload } = useRemoteResource(runDemoAnalysis);
+  const { data, error, reload } = useRemoteResource(loadAnalysis);
 
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
 

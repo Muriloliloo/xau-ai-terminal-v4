@@ -21,7 +21,10 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function apiRequest<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
@@ -47,55 +50,62 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function getHealth(): Promise<HealthResponse> {
-  return request<HealthResponse>("/health");
+  return apiRequest<HealthResponse>("/health");
 }
 
-export function runDemoAnalysis(): Promise<AnalysisResponse> {
-  return request<AnalysisResponse>("/analysis/demo", { method: "POST" });
+/**
+ * @deprecated Use OptionDataProvider through providerFactory.
+ */
+export async function runDemoAnalysis(): Promise<AnalysisResponse> {
+  const { getOptionDataProvider } = await import(
+    "@/lib/providers/providerFactory"
+  );
+  return getOptionDataProvider().load();
 }
 
-export function uploadAnalysis(file: File): Promise<AnalysisResponse> {
-  const form = new FormData();
-  form.append("file", file);
-  return request<AnalysisResponse>("/analysis/upload", {
-    method: "POST",
-    body: form,
-  });
+/**
+ * @deprecated Use OptionDataProvider through providerFactory.
+ */
+export async function uploadAnalysis(file: File): Promise<AnalysisResponse> {
+  const { getOptionDataProvider } = await import(
+    "@/lib/providers/providerFactory"
+  );
+  return getOptionDataProvider().load({ file });
 }
 
 export function getHistory(): Promise<HistoryRecord[]> {
-  return request<HistoryRecord[]>("/history");
+  return apiRequest<HistoryRecord[]>("/history");
 }
 
 export function getOpenInterest(): Promise<OpenInterestAnalysis> {
-  return request<OpenInterestAnalysis>("/open-interest");
+  return apiRequest<OpenInterestAnalysis>("/open-interest");
 }
 
 export function getGex(): Promise<GammaExposureAnalysis> {
-  return request<GammaExposureAnalysis>("/gex");
+  return apiRequest<GammaExposureAnalysis>("/gex");
 }
 
 export function getVolatility(): Promise<VolatilityAnalysis> {
-  return request<VolatilityAnalysis>("/volatility");
+  return apiRequest<VolatilityAnalysis>("/volatility");
 }
 
 export function getSettings(): Promise<SettingsResponse> {
-  return request<SettingsResponse>("/settings");
+  return apiRequest<SettingsResponse>("/settings");
 }
 
 export function getSnapshots(): Promise<SnapshotSummary[]> {
-  return request<SnapshotSummary[]>("/snapshots");
+  return apiRequest<SnapshotSummary[]>("/snapshots");
 }
 
 export function getSnapshot(snapshotId: number): Promise<SnapshotDetail> {
-  return request<SnapshotDetail>(`/snapshots/${snapshotId}`);
+  return apiRequest<SnapshotDetail>(`/snapshots/${snapshotId}`);
 }
 
 export function createSnapshot(
   analysis: AnalysisResponse,
   label?: string,
 ): Promise<SnapshotDetail> {
-  return request<SnapshotDetail>("/snapshots/create", {
+  return apiRequest<SnapshotDetail>("/snapshots/create", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ analysis, label: label || null }),
@@ -103,5 +113,5 @@ export function createSnapshot(
 }
 
 export function deleteSnapshot(snapshotId: number): Promise<void> {
-  return request<void>(`/snapshots/${snapshotId}`, { method: "DELETE" });
+  return apiRequest<void>(`/snapshots/${snapshotId}`, { method: "DELETE" });
 }

@@ -6,9 +6,11 @@ import { MetricCard } from "@/components/cards/MetricCard";
 import { InstitutionalReport } from "@/components/institutional/InstitutionalReport";
 import { Header } from "@/components/layout/Header";
 import { StrikeTable } from "@/components/tables/StrikeTable";
-import { runDemoAnalysis, uploadAnalysis } from "@/lib/api";
 import { formatNumber, formatPercent } from "@/lib/formatters";
+import { getOptionDataProvider } from "@/lib/providers/providerFactory";
 import type { AnalysisResponse, InstitutionalLevels } from "@/types";
+
+const optionDataProvider = getOptionDataProvider();
 
 export function InstitutionalWorkspace() {
   const [file, setFile] = useState<File | null>(null);
@@ -22,9 +24,9 @@ export function InstitutionalWorkspace() {
     try {
       const result =
         source === "demo"
-          ? await runDemoAnalysis()
+          ? await optionDataProvider.load()
           : file
-            ? await uploadAnalysis(file)
+            ? await optionDataProvider.load({ file })
             : null;
       if (!result) {
         setStatus("error");

@@ -99,3 +99,23 @@ input:focus-visible {
     background-position-x: -200%;
   }
 }
+
+.replay-fade {
+  animation: replay-fade 200ms ease-out;
+}
+
+@keyframes replay-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .replay-fade {
+    animation: none;
+  }
+}

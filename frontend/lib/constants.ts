@@ -10,6 +10,7 @@ export const NAVIGATION = [
   { href: "/analytics", label: "Analytics", shortLabel: "Analytics" },
   { href: "/history", label: "Histórico", shortLabel: "Histórico" },
   { href: "/snapshots", label: "Snapshots", shortLabel: "Snapshots" },
+  { href: "/replay", label: "▶ Market Replay", shortLabel: "Replay" },
   { href: "/settings", label: "Configurações", shortLabel: "Ajustes" },
 ] as const;
 

@@ -4,12 +4,18 @@ import { GexProfile } from "@/components/charts/GexProfile";
 import { MetricCard } from "@/components/cards/MetricCard";
 import { ErrorState } from "@/components/layout/ErrorState";
 import { Header } from "@/components/layout/Header";
-import { runDemoAnalysis } from "@/lib/api";
 import { formatNumber, formatPercent } from "@/lib/formatters";
+import { getOptionDataProvider } from "@/lib/providers/providerFactory";
 import { useRemoteResource } from "@/lib/useRemoteResource";
 
+const optionDataProvider = getOptionDataProvider();
+
+function loadAnalysis() {
+  return optionDataProvider.load();
+}
+
 export function AnalyticsWorkspace() {
-  const { data, error, reload } = useRemoteResource(runDemoAnalysis);
+  const { data, error, reload } = useRemoteResource(loadAnalysis);
 
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
 
