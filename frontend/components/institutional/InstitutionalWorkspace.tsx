@@ -2,6 +2,7 @@
 
 import { type FormEvent, useState } from "react";
 
+import { LearnButton } from "@/components/academy/LearnButton";
 import { MetricCard } from "@/components/cards/MetricCard";
 import { InstitutionalReport } from "@/components/institutional/InstitutionalReport";
 import { Header } from "@/components/layout/Header";
@@ -115,6 +116,9 @@ export function InstitutionalWorkspace() {
           </section>
           <InstitutionalReport data={data} />
           <section className="rounded-lg border border-terminal-border bg-terminal-card p-4">
+            <div className="mb-3 flex justify-end">
+              <LearnButton indicatorLabel="Strikes" showLabel />
+            </div>
             <StrikeTable
               rows={data.strike_table}
               levels={

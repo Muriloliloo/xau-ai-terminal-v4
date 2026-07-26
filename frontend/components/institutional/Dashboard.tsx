@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { AlertPanel } from "@/components/cards/AlertPanel";
+import { LearnButton } from "@/components/academy/LearnButton";
 import { MetricCard } from "@/components/cards/MetricCard";
 import { GammaCurve } from "@/components/charts/GammaCurve";
 import { GexMap } from "@/components/charts/GexMap";
@@ -314,11 +315,14 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
               />
             </div>
             <article className="rounded-lg border border-terminal-border bg-terminal-card p-4">
-              <div className="mb-4">
-                <p className="text-sm font-semibold">Distribuição de Open Interest</p>
-                <p className="mt-1 text-xs text-terminal-muted">
-                  Top 10 strikes por OI total
-                </p>
+              <div className="mb-4 flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold">Distribuição de Open Interest</p>
+                  <p className="mt-1 text-xs text-terminal-muted">
+                    Top 10 strikes por OI total
+                  </p>
+                </div>
+                <LearnButton indicatorLabel="Open Interest total" showLabel />
               </div>
               <OpenInterestDistribution analysis={openInterest} />
             </article>
@@ -380,11 +384,14 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
             />
           </div>
           <article className="rounded-lg border border-terminal-border bg-terminal-card p-4">
-            <div className="mb-3">
-              <p className="text-sm font-semibold">Volatility Smile</p>
-              <p className="mt-1 text-xs text-terminal-muted">
-                IV por strike, sem preço ou histórico inventados
-              </p>
+            <div className="mb-3 flex items-start justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold">Volatility Smile</p>
+                <p className="mt-1 text-xs text-terminal-muted">
+                  IV por strike, sem preço ou histórico inventados
+                </p>
+              </div>
+              <LearnButton indicatorLabel="Volatility Smile" showLabel />
             </div>
             <VolatilitySmile rows={volatility?.volatility_curve ?? []} />
             <p className="mt-3 rounded-md border border-terminal-accent/20 bg-terminal-accent/5 px-3 py-2 text-[10px] leading-4 text-terminal-muted">
@@ -433,11 +440,14 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
               />
             </div>
             <article className="rounded-lg border border-terminal-border bg-terminal-card p-4">
-              <div className="mb-4">
-                <p className="text-sm font-semibold">Curva de Gamma</p>
-                <p className="mt-1 text-xs text-terminal-muted">
-                  Net GEX por strike · gamma {gammaExposure.gamma_source}
-                </p>
+              <div className="mb-4 flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold">Curva de Gamma</p>
+                  <p className="mt-1 text-xs text-terminal-muted">
+                    Net GEX por strike · gamma {gammaExposure.gamma_source}
+                  </p>
+                </div>
+                <LearnButton indicatorLabel="GEX Total" showLabel />
               </div>
               <GammaCurve
                 rows={gammaExposure.curve_by_strike}
@@ -454,18 +464,24 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
 
         <section className="grid gap-3 xl:grid-cols-[1.15fr_0.85fr]">
           <article className="rounded-lg border border-terminal-border bg-terminal-card p-4">
-            <div className="mb-4">
-              <p className="text-sm font-semibold">Perfil Net GEX</p>
-              <p className="mt-1 text-xs text-terminal-muted">Exposição bilateral por strike</p>
+            <div className="mb-4 flex items-start justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold">Perfil Net GEX</p>
+                <p className="mt-1 text-xs text-terminal-muted">Exposição bilateral por strike</p>
+              </div>
+              <LearnButton indicatorLabel="GEX Total" showLabel />
             </div>
             <GexProfile rows={data.gex_by_strike} levels={levels} />
           </article>
           <article className="rounded-lg border border-terminal-border bg-terminal-card p-4">
-            <div className="mb-4">
-              <p className="text-sm font-semibold">Mapa GEX</p>
-              <p className="mt-1 text-xs text-terminal-muted">
-                Concentração e pressão por strike
-              </p>
+            <div className="mb-4 flex items-start justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold">Mapa GEX</p>
+                <p className="mt-1 text-xs text-terminal-muted">
+                  Concentração e pressão por strike
+                </p>
+              </div>
+              <LearnButton indicatorLabel="Dealer Pressure" showLabel />
             </div>
             <GexMap
               rows={gammaExposure?.curve_by_strike ?? data.gex_by_strike}
@@ -477,9 +493,12 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
         <section className="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
           <article className="overflow-hidden rounded-lg border border-terminal-border bg-terminal-card">
             <div className="mb-3">
-              <div className="border-b border-terminal-border px-4 py-3">
-                <p className="text-sm font-semibold">Tabela por strike</p>
-                <p className="mt-1 text-xs text-terminal-muted">Dados agregados do snapshot</p>
+              <div className="flex items-start justify-between gap-2 border-b border-terminal-border px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold">Tabela por strike</p>
+                  <p className="mt-1 text-xs text-terminal-muted">Dados agregados do snapshot</p>
+                </div>
+                <LearnButton indicatorLabel="Strikes" showLabel />
               </div>
             </div>
             <div className="px-2 pb-2">

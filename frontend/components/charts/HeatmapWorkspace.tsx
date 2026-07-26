@@ -1,5 +1,6 @@
 "use client";
 
+import { LearnButton } from "@/components/academy/LearnButton";
 import { GammaCurve } from "@/components/charts/GammaCurve";
 import { GexMap } from "@/components/charts/GexMap";
 import { ErrorState } from "@/components/layout/ErrorState";
@@ -41,9 +42,12 @@ export function HeatmapWorkspace() {
       ) : (
         <div className="grid gap-3 xl:grid-cols-2">
           <section className="rounded-lg border border-terminal-border bg-terminal-card p-4">
-            <h2 className="mb-4 text-sm font-semibold">
-              Mapa institucional por strike
-            </h2>
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold">
+                Mapa institucional por strike
+              </h2>
+              <LearnButton indicatorLabel="Dealer Pressure" showLabel />
+            </div>
             <GexMap
               rows={
                 data.gamma_exposure_analysis?.curve_by_strike
@@ -53,7 +57,10 @@ export function HeatmapWorkspace() {
             />
           </section>
           <section className="rounded-lg border border-terminal-border bg-terminal-card p-4">
-            <h2 className="mb-4 text-sm font-semibold">Curva de Gamma</h2>
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold">Curva de Gamma</h2>
+              <LearnButton indicatorLabel="GEX Total" showLabel />
+            </div>
             {data.gamma_exposure_analysis ? (
               <GammaCurve
                 rows={data.gamma_exposure_analysis.curve_by_strike}

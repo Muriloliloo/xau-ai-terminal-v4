@@ -1,5 +1,6 @@
 "use client";
 
+import { LearnButton } from "@/components/academy/LearnButton";
 import { GexProfile } from "@/components/charts/GexProfile";
 import { MetricCard } from "@/components/cards/MetricCard";
 import { ErrorState } from "@/components/layout/ErrorState";
@@ -38,7 +39,10 @@ export function AnalyticsWorkspace() {
             <MetricCard label="Strikes" value={data.gex_by_strike.length} />
           </div>
           <section className="rounded-lg border border-terminal-border bg-terminal-card p-4">
-            <h2 className="mb-4 text-sm font-semibold">Perfil atual</h2>
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold">Perfil atual</h2>
+              <LearnButton indicatorLabel="GEX Total" showLabel />
+            </div>
             <GexProfile rows={data.gex_by_strike} />
           </section>
         </>
