@@ -128,6 +128,31 @@ def insert_cme_snapshot(
         return int(cursor.lastrowid)
 
 
+def get_cme_snapshot_by_import_id(
+    cme_import_id: int,
+    *, database_path: str | Path | None = None,
+) -> dict[str, Any] | None:
+    """Return the snapshot generated for an import, when it already exists.
+
+    CME confirmation is intentionally idempotent at the snapshot layer.  A
+    user can refresh the System page (or retry a request) without creating
+    duplicate timeline points for the same confirmed import.
+    """
+    initialize_institutional_data_database(database_path)
+    with get_connection(database_path) as connection:
+        connection.row_factory = sqlite3.Row
+        row = connection.execute(
+            """
+            SELECT * FROM cme_institutional_snapshots
+            WHERE cme_import_id = ?
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
+            """,
+            (cme_import_id,),
+        ).fetchone()
+        return _snapshot_row(row) if row is not None else None
+
+
 def _snapshot_row(row: Any) -> dict[str, Any]:
     value = dict(row) if isinstance(row, sqlite3.Row) else dict(row)
     for field in (

@@ -542,6 +542,12 @@ export interface CmeBulletinImport {
 export interface CmeBulletinConfirmResponse {
   imported: true;
   result: CmeBulletinImport;
+  success: true;
+  provider: "cme_bulletin";
+  snapshot_id: number | null;
+  contracts: number;
+  market_date: string | null;
+  dashboard_updated: boolean;
 }
 
 export interface CmeBulletinLatestResponse {
@@ -711,4 +717,20 @@ export interface CmeInstitutionalSnapshot {
     eligibility: CmeEligibilityReport;
     contracts: CmeBulletinContract[];
   };
+}
+
+export interface CurrentProviderResponse {
+  provider: string;
+  origin: string | null;
+  market_date: string | null;
+  last_updated: string | null;
+  snapshot_id: number | null;
+  snapshot: CmeInstitutionalSnapshot | null;
+  contract_count: number;
+  calls: number;
+  puts: number;
+  open_interest_total: number | null;
+  volume_total: number | null;
+  is_demo: boolean;
+  available: boolean;
 }

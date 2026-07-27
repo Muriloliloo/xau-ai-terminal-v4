@@ -16,6 +16,7 @@ from backend.api import (
     institutional,
     market_data,
     open_interest,
+    provider,
     settings,
     snapshots,
     volatility,
@@ -70,6 +71,7 @@ app.include_router(history.router, prefix="/api")
 app.include_router(settings.router, prefix="/api")
 app.include_router(snapshots.router, prefix="/api")
 app.include_router(open_interest.router, prefix="/api")
+app.include_router(provider.router, prefix="/api")
 app.include_router(gex.router, prefix="/api")
 app.include_router(volatility.router, prefix="/api")
 app.include_router(market_data.router, prefix="/api")

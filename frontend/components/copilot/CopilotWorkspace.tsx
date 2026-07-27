@@ -24,6 +24,7 @@ import {
 } from "@/lib/copilot/copilotStorage";
 import { loadCopilotKnowledge } from "@/lib/copilot/knowledgeContext";
 import { getCopilotProvider } from "@/lib/copilot/providerFactory";
+import { CME_BULLETIN_UPDATED_EVENT } from "@/lib/cmeBulletin";
 import { formatTimestamp } from "@/lib/formatters";
 import { readStoredJson, writeStoredJson } from "@/lib/storage";
 import { useDialogFocus } from "@/lib/useDialogFocus";
@@ -65,6 +66,12 @@ export function CopilotWorkspace() {
     }, 0);
     return () => window.clearTimeout(hydrationTimer);
   }, []);
+
+  useEffect(() => {
+    const refresh = () => void reload();
+    window.addEventListener(CME_BULLETIN_UPDATED_EVENT, refresh);
+    return () => window.removeEventListener(CME_BULLETIN_UPDATED_EVENT, refresh);
+  }, [reload]);
 
   useEffect(() => {
     if (!hydrated) return;

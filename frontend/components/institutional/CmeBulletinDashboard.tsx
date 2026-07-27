@@ -89,6 +89,7 @@ export function CmeBulletinDashboard({
               <h1 className="text-base font-semibold tracking-[0.08em]">
                 GOLD OPTIONS · CME
               </h1>
+              <StatusBadge label="🟢 CME REAL DATA" tone="positive" />
               <StatusBadge label="CME EOD" tone="warning" />
               <StatusBadge label="Dados de fechamento" tone="warning" />
               <StatusBadge label="Importação manual" tone="neutral" />

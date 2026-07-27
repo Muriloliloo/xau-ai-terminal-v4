@@ -9,6 +9,7 @@ from typing import Any, Literal
 from backend.config import SAMPLE_CSV_PATH
 from backend.database.institutional_data_repository import (
     get_cme_snapshot,
+    get_cme_snapshot_by_import_id,
     get_institutional_mode,
     insert_cme_snapshot,
     list_cme_snapshots,
@@ -233,11 +234,28 @@ def activate_mode(mode: InstitutionalDataMode) -> InstitutionalDataState:
     return get_institutional_state()
 
 
-def create_cme_snapshot() -> dict[str, Any]:
-    state = get_institutional_state()
-    latest = get_latest_cme()
-    if latest is None or state.data_mode != "real_eod":
+def create_cme_snapshot(
+    latest: CmeBulletinImport | None = None,
+    *,
+    database_path: str | os.PathLike[str] | None = None,
+) -> dict[str, Any]:
+    """Persist the current CME import as the institutional timeline point.
+
+    Confirmation passes the just-created import directly so this function can
+    complete the provider pipeline even when the request uses an isolated test
+    database.  The public manual snapshot endpoint remains compatible and is
+    idempotent for an already-confirmed import.
+    """
+    if latest is None:
+        latest = get_latest_cme()
+    if latest is None:
         raise ValueError("Snapshot CME exige uma importação CME ativa.")
+
+    # A confirmed bulletin is the explicit source of truth until the user
+    # deliberately selects demo mode again.  This only changes source state;
+    # no engine or formula is invoked here.
+    set_institutional_mode("real_eod", database_path=database_path)
+    state = _cme_state(latest, mode="real_eod")
     oi = latest.open_interest_analysis
     payload = {
         "cme_import_id": latest.id,
@@ -270,7 +288,14 @@ def create_cme_snapshot() -> dict[str, Any]:
             "contracts": [contract.model_dump(mode="json") for contract in latest.contracts],
         },
     }
-    snapshot_id = insert_cme_snapshot(payload)
+    existing = get_cme_snapshot_by_import_id(
+        latest.id,
+        database_path=database_path,
+    )
+    if existing is not None:
+        return existing
+
+    snapshot_id = insert_cme_snapshot(payload, database_path=database_path)
     return {"id": snapshot_id, "created_at": datetime.now(UTC), **payload}
 
 

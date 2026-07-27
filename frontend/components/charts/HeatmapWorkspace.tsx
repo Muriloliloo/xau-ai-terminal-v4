@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 import { LearnButton } from "@/components/academy/LearnButton";
 import { GammaCurve } from "@/components/charts/GammaCurve";
 import { GexMap } from "@/components/charts/GexMap";
@@ -7,7 +9,10 @@ import { OpenInterestDistribution } from "@/components/charts/OpenInterestDistri
 import { ErrorState } from "@/components/layout/ErrorState";
 import { Header } from "@/components/layout/Header";
 import { getInstitutionalLatest, getInstitutionalStatus } from "@/lib/api";
-import { cmeOpenInterestForChart } from "@/lib/cmeBulletin";
+import {
+  CME_BULLETIN_UPDATED_EVENT,
+  cmeOpenInterestForChart,
+} from "@/lib/cmeBulletin";
 import { getOptionDataProvider } from "@/lib/providers/providerFactory";
 import { useRemoteResource } from "@/lib/useRemoteResource";
 import type { InstitutionalLevels } from "@/types";
@@ -24,6 +29,12 @@ async function loadWorkspace() {
 
 export function HeatmapWorkspace() {
   const { data, error, reload } = useRemoteResource(loadWorkspace);
+
+  useEffect(() => {
+    const refresh = () => void reload();
+    window.addEventListener(CME_BULLETIN_UPDATED_EVENT, refresh);
+    return () => window.removeEventListener(CME_BULLETIN_UPDATED_EVENT, refresh);
+  }, [reload]);
 
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
 

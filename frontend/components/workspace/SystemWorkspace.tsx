@@ -9,6 +9,7 @@ import { CmeBulletinImport } from "@/components/workspace/CmeBulletinImport";
 import { ManualOptionsImport } from "@/components/workspace/ManualOptionsImport";
 import {
   getHealth,
+  getCurrentProvider,
   getInstitutionalStatus,
   getProvidersStatus,
   setInstitutionalMode,
@@ -62,12 +63,21 @@ export function SystemWorkspace() {
     loading: institutionalLoading,
     reload: reloadInstitutional,
   } = useRemoteResource(getInstitutionalStatus);
+  const {
+    data: currentProvider,
+    reload: reloadCurrentProvider,
+  } = useRemoteResource(getCurrentProvider);
   const [metadata, setMetadata] = useState(readProviderMetadata);
 
   const refreshPanel = useCallback(async () => {
-    await Promise.all([reload(), reloadProviders(), reloadInstitutional()]);
+    await Promise.all([
+      reload(),
+      reloadProviders(),
+      reloadInstitutional(),
+      reloadCurrentProvider(),
+    ]);
     setMetadata(readProviderMetadata());
-  }, [reload, reloadProviders, reloadInstitutional]);
+  }, [reload, reloadCurrentProvider, reloadProviders, reloadInstitutional]);
 
   async function changeInstitutionalMode(mode: InstitutionalDataMode) {
     if (mode === "demo" && !window.confirm("Ativar demonstração com sample_options.csv?")) return;
@@ -178,6 +188,29 @@ export function SystemWorkspace() {
             <button type="button" onClick={() => void changeInstitutionalMode("auto")} className="rounded-md border border-terminal-accent/40 bg-terminal-accent/10 px-3 py-2 text-xs font-semibold text-terminal-accent">Modo automático</button>
             <button type="button" onClick={() => void changeInstitutionalMode("demo")} className="rounded-md border border-terminal-flip/40 bg-terminal-flip/10 px-3 py-2 text-xs font-semibold text-terminal-flip">Voltar para modo demonstração</button>
           </div>
+        </div>
+      </section>
+
+      <section className="workspace-fade mt-3 overflow-hidden rounded-lg border border-terminal-positive/30 bg-terminal-card">
+        <CardHeader
+          title="Provider Atual"
+          description="Fonte institucional efetivamente utilizada após a última confirmação."
+          action={
+            <StatusBadge
+              label={currentProvider?.provider === "cme_bulletin" ? "CME REAL DATA" : currentProvider?.provider ?? "Indisponível"}
+              tone={currentProvider?.provider === "cme_bulletin" ? "positive" : "warning"}
+            />
+          }
+        />
+        <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
+          <SystemValue label="Origem" value={currentProvider?.origin ?? UNAVAILABLE_LABEL} />
+          <SystemValue label="Data CME" value={currentProvider?.market_date ?? UNAVAILABLE_LABEL} />
+          <SystemValue label="Quantidade de contratos" value={currentProvider?.contract_count ?? 0} />
+          <SystemValue label="Calls" value={currentProvider?.calls ?? 0} />
+          <SystemValue label="Puts" value={currentProvider?.puts ?? 0} />
+          <SystemValue label="OI Total" value={currentProvider?.open_interest_total ?? UNAVAILABLE_LABEL} />
+          <SystemValue label="Snapshot Gerado" value={currentProvider?.snapshot_id ? `#${currentProvider.snapshot_id}` : UNAVAILABLE_LABEL} />
+          <SystemValue label="Horário da importação" value={currentProvider?.last_updated ? formatTimestamp(currentProvider.last_updated) : UNAVAILABLE_LABEL} />
         </div>
       </section>
 

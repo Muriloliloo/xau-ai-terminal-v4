@@ -55,7 +55,14 @@ class MarketDataSettings:
     @classmethod
     def from_environment(cls) -> "MarketDataSettings":
         provider = os.getenv("MARKET_DATA_PROVIDER", "auto").strip().lower()
-        supported = {"auto", "alpha_vantage", "manual", "csv", "demo"}
+        supported = {
+            "auto",
+            "alpha_vantage",
+            "cme_bulletin",
+            "manual",
+            "csv",
+            "demo",
+        }
         if provider not in supported:
             provider = "auto"
         key = os.getenv("ALPHA_VANTAGE_API_KEY", "").strip() or None

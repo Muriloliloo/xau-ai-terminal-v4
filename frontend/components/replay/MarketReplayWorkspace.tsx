@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Dashboard } from "@/components/institutional/Dashboard";
 import { EmptyState } from "@/components/layout/EmptyState";
@@ -10,6 +10,7 @@ import { ReplayComparison } from "@/components/replay/ReplayComparison";
 import { ReplaySnapshotList } from "@/components/replay/ReplaySnapshotList";
 import { ReplayTimeline } from "@/components/replay/ReplayTimeline";
 import { getCmeInstitutionalSnapshots, getInstitutionalStatus, getSnapshots } from "@/lib/api";
+import { CME_BULLETIN_UPDATED_EVENT } from "@/lib/cmeBulletin";
 import {
   formatReplayTime,
   replayRegime,
@@ -19,8 +20,8 @@ import { useRemoteResource } from "@/lib/useRemoteResource";
 
 export function MarketReplayWorkspace() {
   const { data, error, loading, reload } = useRemoteResource(getSnapshots);
-  const { data: institutionalState } = useRemoteResource(getInstitutionalStatus);
-  const { data: cmeSnapshots } = useRemoteResource(getCmeInstitutionalSnapshots);
+  const { data: institutionalState, reload: reloadInstitutional } = useRemoteResource(getInstitutionalStatus);
+  const { data: cmeSnapshots, reload: reloadCmeSnapshots } = useRemoteResource(getCmeInstitutionalSnapshots);
   const [selectedIndexState, setSelectedIndex] = useState<number | null>(null);
   const snapshots = useMemo(
     () => sortSnapshotsChronologically(data ?? []),
@@ -31,6 +32,16 @@ export function MarketReplayWorkspace() {
     Math.max(snapshots.length - 1, 0),
   );
   const selectedSnapshot = snapshots[selectedIndex];
+
+  useEffect(() => {
+    const refresh = () => {
+      void reload();
+      void reloadInstitutional();
+      void reloadCmeSnapshots();
+    };
+    window.addEventListener(CME_BULLETIN_UPDATED_EVENT, refresh);
+    return () => window.removeEventListener(CME_BULLETIN_UPDATED_EVENT, refresh);
+  }, [reload, reloadCmeSnapshots, reloadInstitutional]);
 
   if (error) {
     return <ErrorState message={error} onRetry={() => void reload()} />;

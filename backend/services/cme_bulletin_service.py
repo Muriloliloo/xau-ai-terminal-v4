@@ -655,7 +655,34 @@ class CmeBulletinService:
         )
         self.cache.discard(preview_id)
         self.provider.confirm(result)
-        return CmeBulletinConfirmResponse(result=result)
+        # Keep the service-local provider in sync with the process-wide
+        # factory provider.  The factory remains the single source consumed by
+        # generic market endpoints after a successful confirmation.
+        from backend.providers.provider_factory import activate_cme_import
+
+        activate_cme_import(result)
+
+        # A CME import is a complete institutional data event.  Persist its
+        # timeline snapshot immediately, while retaining the legacy
+        # ``result.snapshot_created`` field for clients that still expect the
+        # pre-Sprint-13 response contract.
+        from backend.services.institutional_data_service import (
+            create_cme_snapshot,
+        )
+
+        snapshot = create_cme_snapshot(
+            result,
+            database_path=self.database_path,
+        )
+        return CmeBulletinConfirmResponse(
+            result=result,
+            success=True,
+            provider="cme_bulletin",
+            snapshot_id=int(snapshot["id"]),
+            contracts=result.contract_count,
+            market_date=result.metadata.bulletin_date,
+            dashboard_updated=True,
+        )
 
     def latest(self) -> CmeBulletinLatestResponse:
         stored = get_latest_cme_bulletin_import(
@@ -679,6 +706,9 @@ class CmeBulletinService:
             open_interest_analysis=stored["open_interest_analysis"],
         )
         self.provider.confirm(result)
+        from backend.providers.provider_factory import activate_cme_import
+
+        activate_cme_import(result)
         return CmeBulletinLatestResponse(available=True, result=result)
 
     def status(self) -> CmeBulletinStatusResponse:

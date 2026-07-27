@@ -148,6 +148,26 @@ O importador manual aceita vírgula/ponto e vírgula e decimal ponto/vírgula. U
 arquivo inválido ou ainda não confirmado não altera o provider e não cria
 snapshot.
 
+## Pipeline CME oficial
+
+```text
+PDF local
+  -> POST /market/cme-bulletin/preview (cache TTL, sem provider)
+  -> POST /market/cme-bulletin/confirm
+  -> CmeBulletinProvider (fonte oficial da sessão)
+  -> institutional_data_state = real_eod
+  -> cme_institutional_snapshots (idempotente por import)
+  -> Dashboard / Analytics / Heatmap / Replay / Institutional Copilot
+```
+
+O provider CME é priorizado pela factory somente para opções. O pipeline
+recalcula apenas métricas liberadas pela elegibilidade do boletim: no arquivo
+de referência isso significa Open Interest, volume, settlement e distribuição.
+Dealer, Gamma/GEX e IV continuam marcados como indisponíveis quando os campos
+não existem; nenhuma fórmula protegida é alterada ou preenchida com demo.
+`GET /api/provider/current` é somente leitura e retorna a origem e o snapshot
+atual.
+
 ## Contrato de análise
 
 ```text

@@ -31,6 +31,7 @@ OpenAPI: `http://localhost:8000/api/docs`
 | POST | `/market/cme-bulletin/confirm` | confirma preview CME elegível e registra importação |
 | GET | `/market/cme-bulletin/status` | limites, cache e última importação CME |
 | GET | `/market/cme-bulletin/latest` | última importação CME confirmada |
+| GET | `/provider/current` | provider institucional ativo e snapshot atual |
 
 ## Análise V2
 
@@ -60,6 +61,27 @@ provider, engines ou snapshots. A confirmação exige um `preview_id` ainda
 válido, rejeita estados `rejected`/`incompatible`, invalida o preview após uso e
 persiste apenas metadata, relatório, contratos normalizados e hash (nunca o PDF
 integral). Repetição do mesmo hash exige `allow_reprocess=true` explicitamente.
+
+Após a confirmação, o import é publicado no `CmeBulletinProvider`, o modo
+institucional passa a `real_eod` e um registro `cme_institutional_snapshots` é
+criado automaticamente (idempotente por `cme_import_id`). A resposta mantém o
+bloco legado `result` e acrescenta:
+
+```json
+{
+  "success": true,
+  "provider": "cme_bulletin",
+  "snapshot_id": 42,
+  "contracts": 4397,
+  "market_date": "2026-07-24",
+  "dashboard_updated": true
+}
+```
+
+`GET /api/provider/current` expõe a mesma fonte ativa, origem `cme_pdf`, totais
+de Calls/Puts/OI/volume e o snapshot CME atual. O provider é priorizado pela
+factory para a capacidade `options`; spot, Gamma e GEX continuam indisponíveis
+quando não são fornecidos pelo boletim, sem fallback demo silencioso.
 
 Todas as respostas CME identificam `freshness_type=end_of_day`,
 `is_manual=true` e os avisos/campos ausentes. O boletim de referência não

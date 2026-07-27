@@ -22,6 +22,7 @@ import type {
   InstitutionalDataMode,
   InstitutionalDataState,
   InstitutionalLatestResponse,
+  CurrentProviderResponse,
 } from "@/types";
 
 export class ApiError extends Error {
@@ -168,6 +169,10 @@ export function getCmeBulletinStatus(): Promise<CmeBulletinStatusResponse> {
 
 export function getLatestCmeBulletin(): Promise<CmeBulletinLatestResponse> {
   return apiRequest<CmeBulletinLatestResponse>("/market/cme-bulletin/latest");
+}
+
+export function getCurrentProvider(): Promise<CurrentProviderResponse> {
+  return apiRequest<CurrentProviderResponse>("/provider/current");
 }
 
 export function getInstitutionalStatus(): Promise<InstitutionalDataState> {

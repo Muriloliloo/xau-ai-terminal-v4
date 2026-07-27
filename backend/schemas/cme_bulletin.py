@@ -200,6 +200,14 @@ class CmeBulletinImport(BaseModel):
 class CmeBulletinConfirmResponse(BaseModel):
     imported: Literal[True] = True
     result: CmeBulletinImport
+    # Sprint 13 pipeline fields.  They are additive so existing clients can
+    # continue reading ``imported`` and ``result`` unchanged.
+    success: Literal[True] = True
+    provider: Literal["cme_bulletin"] = "cme_bulletin"
+    snapshot_id: int | None = Field(default=None, ge=1)
+    contracts: int = Field(default=0, ge=0)
+    market_date: date | None = None
+    dashboard_updated: bool = False
 
 
 class CmeBulletinLatestResponse(BaseModel):

@@ -7,6 +7,22 @@ Alpha e não adota releases estáveis.
 
 ## [Unreleased]
 
+### Sprint 13 — CME Bulletin como provider oficial
+
+- confirmação de preview CME agora publica o resultado no `CmeBulletinProvider`
+  global e ativa o modo institucional `real_eod`;
+- snapshot institucional CME gerado automaticamente e de forma idempotente,
+  preservando a trilha dedicada do Replay e sem duplicar snapshots legados;
+- criado `GET /api/provider/current` com origem `cme_pdf`, data, totais e
+  snapshot atual;
+- provider CME priorizado pela factory para cadeias de opções após confirmação,
+  sem fallback demo silencioso e sem inventar Gamma/GEX/spot;
+- Dashboard/System exibem `CME REAL DATA`, metadados e snapshot gerado;
+- confirmação dispara atualização de Dashboard, Analytics, Heatmap, Replay e
+  Copilot via evento de invalidação no frontend;
+- nenhum engine protegido, fórmula, contrato público anterior ou layout-base
+  foi removido.
+
 ### Sprint 12 — CME Daily Bulletin Importer
 
 - adicionado fluxo manual `preview -> confirm` para PDFs locais da CME Section

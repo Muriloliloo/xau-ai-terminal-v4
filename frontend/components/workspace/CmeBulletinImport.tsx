@@ -42,11 +42,13 @@ export function CmeBulletinImport({
   const [allowReprocess, setAllowReprocess] = useState(false);
   const [busy, setBusy] = useState<"preview" | "confirm" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   async function runPreview() {
     if (!file) return;
     setBusy("preview");
     setError(null);
+    setSuccessMessage(null);
     setPreview(null);
     setConfirmed(null);
     try {
@@ -67,6 +69,7 @@ export function CmeBulletinImport({
     if (!preview) return;
     setBusy("confirm");
     setError(null);
+    setSuccessMessage(null);
     try {
       const response = await confirmCmeBulletin(
         preview.preview_id,
@@ -74,6 +77,7 @@ export function CmeBulletinImport({
       );
       setConfirmed(response);
       saveCmeBulletinSession(response.result);
+      setSuccessMessage("CME Bulletin importado com sucesso.");
       onImported();
     } catch (reason) {
       setError(
@@ -93,7 +97,7 @@ export function CmeBulletinImport({
     <section className="workspace-fade overflow-hidden rounded-lg border border-terminal-border bg-terminal-card">
       <CardHeader
         title="CME Daily Bulletin"
-        description="Importação manual e isolada do boletim diário de opções de ouro. A prévia não altera o provider, o Dashboard nem os snapshots."
+        description="Importação manual do boletim diário de opções de ouro. Após a confirmação, o provider CME vira a fonte institucional e um snapshot é gerado automaticamente."
         action={<StatusBadge label="CME EOD" tone="warning" />}
       />
 
@@ -139,6 +143,12 @@ export function CmeBulletinImport({
         {error ? (
           <p className="rounded-md border border-terminal-negative/35 bg-terminal-negative/5 px-3 py-2 text-xs text-terminal-negative">
             {error}
+          </p>
+        ) : null}
+
+        {successMessage ? (
+          <p className="rounded-md border border-terminal-positive/35 bg-terminal-positive/5 px-3 py-2 text-xs text-terminal-positive">
+            {successMessage}
           </p>
         ) : null}
 

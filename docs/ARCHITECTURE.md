@@ -17,7 +17,7 @@ flowchart LR
     DOMAIN --> CORE["Engines"]
     DOMAIN --> SERVICES["Services"]
     DOMAIN --> DB[("SQLite")]
-    PROVIDERS["Providers: Alpha / Manual / CSV / Demo"] --> API
+PROVIDERS["Providers: Alpha / CME Bulletin / Manual / CSV / Demo"] --> API
     CSV["CSV upload/amostra"] --> API
     CSV --> STREAMLIT
 ```
@@ -79,6 +79,7 @@ XAU_AI_TERMINAL_V3/
 | `open_interest.py` | `GET /api/open-interest` | Métricas OI da amostra |
 | `gex.py` | `GET /api/gex` | Perfil Gamma Exposure da amostra |
 | `market_data.py` | `/api/providers*`, `/api/market/*` | Providers, metadata, spot, histórico, opções e importação |
+| `provider.py` | `GET /api/provider/current` | Fonte institucional ativa e snapshot atual |
 
 Pydantic models em `backend/schemas/` definem o contrato HTTP. Models em
 `backend/models/` representam o domínio interno.
@@ -113,6 +114,14 @@ models. Tanto a API quanto o Streamlit usam esse serviço.
 - `alpha_vantage_provider.py`: integração oficial opcional;
 - `manual_options_provider.py`: validação e confirmação de upload;
 - `csv_provider.py` e `demo_provider.py`: fontes preservadas.
+- `cme_bulletin_provider.py`: provider oficial de contratos confirmados do
+  boletim CME, com metadata EOD/manual e cadeia normalizada sem Gamma inventado.
+
+Quando um preview CME é confirmado, `CmeBulletinService` publica o resultado na
+instância CME da factory, ativa o modo institucional `real_eod` e chama o
+snapshot institucional idempotente. `backend/api/provider.py` expõe o estado
+consolidado em `/api/provider/current`. A tabela dedicada mantém a trilha CME
+do Replay sem misturar registros legados de `institutional_snapshots`.
 
 O frontend consome apenas a API FastAPI. A chave Alpha Vantage nunca entra em
 bundles Next.js. A factory tenta somente fontes autorizadas e informa sempre a

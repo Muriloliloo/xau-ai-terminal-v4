@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 
 import { LearnButton } from "@/components/academy/LearnButton";
 import { MetricCard } from "@/components/cards/MetricCard";
@@ -8,6 +8,7 @@ import { InstitutionalReport } from "@/components/institutional/InstitutionalRep
 import { Header } from "@/components/layout/Header";
 import { StrikeTable } from "@/components/tables/StrikeTable";
 import { formatNumber, formatPercent } from "@/lib/formatters";
+import { CME_BULLETIN_UPDATED_EVENT } from "@/lib/cmeBulletin";
 import { getOptionDataProvider } from "@/lib/providers/providerFactory";
 import type { AnalysisResponse, InstitutionalLevels } from "@/types";
 
@@ -18,6 +19,19 @@ export function InstitutionalWorkspace() {
   const [data, setData] = useState<AnalysisResponse | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const refreshProviderState = () => {
+      // The institutional workspace keeps its CSV controls intact, but clears
+      // the previous calculation so it cannot look newer than the confirmed
+      // CME provider. The Dashboard is the official CME presentation surface.
+      setData(null);
+      setMessage("CME Bulletin ativo. O Dashboard agora usa os dados oficiais importados.");
+      setStatus("idle");
+    };
+    window.addEventListener(CME_BULLETIN_UPDATED_EVENT, refreshProviderState);
+    return () => window.removeEventListener(CME_BULLETIN_UPDATED_EVENT, refreshProviderState);
+  }, []);
 
   async function analyze(source: "demo" | "upload") {
     setStatus("loading");

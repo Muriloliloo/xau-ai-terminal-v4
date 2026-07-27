@@ -10,6 +10,7 @@ from typing import TypeVar
 
 from backend.config import MarketDataSettings
 from backend.providers.alpha_vantage_provider import AlphaVantageProvider
+from backend.providers.cme_bulletin_provider import CmeBulletinProvider
 from backend.providers.csv_provider import CsvProvider
 from backend.providers.demo_provider import DemoProvider
 from backend.providers.interface_provider import MarketDataProvider
@@ -21,6 +22,7 @@ from backend.providers.provider_errors import (
     ProviderNotConfiguredError,
 )
 from backend.providers.provider_registry import ProviderRegistry
+from backend.schemas.cme_bulletin import CmeBulletinImport
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +53,10 @@ class MarketDataProviderFactory:
             order = (
                 ["alpha_vantage", "manual", "csv", "demo"]
                 if capability in {"spot", "daily_history"}
-                else ["manual", "csv", "demo"]
+                else ["cme_bulletin", "manual", "csv", "demo"]
             )
         else:
-            fallback_order = ["manual", "csv", "demo"]
+            fallback_order = ["cme_bulletin", "manual", "csv", "demo"]
             order = [selected, *[name for name in fallback_order if name != selected]]
         return order if self.settings.allow_demo_fallback else order[:1]
 
@@ -180,6 +182,12 @@ class MarketDataProviderFactory:
             raise RuntimeError("Manual Options Provider não registrado.")
         return provider
 
+    def cme_provider(self) -> CmeBulletinProvider:
+        provider = self.registry.get("cme_bulletin")
+        if not isinstance(provider, CmeBulletinProvider):
+            raise RuntimeError("CME Bulletin Provider não registrado.")
+        return provider
+
 
 _factory: MarketDataProviderFactory | None = None
 _factory_lock = RLock()
@@ -197,6 +205,7 @@ def _build_factory() -> MarketDataProviderFactory:
             timeout_seconds=settings.timeout_seconds,
         ),
     )
+    registry.register("cme_bulletin", CmeBulletinProvider())
     registry.register("manual", ManualOptionsProvider())
     registry.register("csv", CsvProvider(settings.csv_path))
     registry.register("demo", DemoProvider())
@@ -215,3 +224,9 @@ def reset_provider_factory() -> None:
     global _factory
     with _factory_lock:
         _factory = None
+
+
+def activate_cme_import(result: CmeBulletinImport) -> None:
+    """Publish a confirmed import to the official process-wide provider."""
+    provider = get_provider_factory().cme_provider()
+    provider.confirm(result)

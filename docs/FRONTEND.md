@@ -19,6 +19,13 @@ diário, fonte manual, elegibilidade e campos ausentes. Após a confirmação,
 somente componentes compatíveis com os dados são atualizados; Gamma/GEX e spot
 continuam indisponíveis quando o boletim não os fornece.
 
+Depois de `Confirmar importação`, o cliente grava a sessão compacta e emite o
+evento `xau:cme-bulletin-updated`. Dashboard, Analytics, Heatmap, Replay e
+Copilot usam esse evento para refazer suas consultas sem recarregar a página.
+O Dashboard mostra o selo `🟢 CME REAL DATA`; o System consulta
+`/api/provider/current` e exibe data, totais e `snapshot_id`. O Replay lê a
+trilha `cme_institutional_snapshots` criada automaticamente na confirmação.
+
 ## Rotas
 
 | Rota | Função |
