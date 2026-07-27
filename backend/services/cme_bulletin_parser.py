@@ -14,6 +14,11 @@ from typing import BinaryIO
 import pdfplumber
 from pydantic import ValidationError
 
+try:
+    import pypdfium2 as pdfium
+except (ImportError, OSError):  # pragma: no cover - dependency fallback
+    pdfium = None
+
 from backend.schemas.cme_bulletin import CmeBulletinContract
 
 CME_SOURCE = "CME Group Daily Information Bulletin — Section 64"
@@ -29,6 +34,14 @@ GOLD_PRODUCT_ALIASES: tuple[re.Pattern[str], ...] = (
         r"^(OG(?:1|2|4|5)?)\s+(CALL|PUT)(?:\s+((?:COMEX\s+)?GOLD OPTIONS))?$",
         re.IGNORECASE,
     ),
+)
+SUPPORTED_GOLD_PAGE_PATTERN = re.compile(
+    r"^\s*OG(?:1|2|4|5)?\s+(?:CALL|PUT)\b",
+    re.IGNORECASE | re.MULTILINE,
+)
+UNSUPPORTED_WEEKLY_GOLD_PAGE_PATTERN = re.compile(
+    r"^\s*G(?:WW|WT|WR|MW)\b",
+    re.IGNORECASE | re.MULTILINE,
 )
 MONTH_NUMBER = {
     "JAN": 1,
@@ -209,6 +222,67 @@ def _expiration_map(
     return result
 
 
+def _gold_page_hints(
+    source: BinaryIO | bytes,
+) -> tuple[list[bool] | None, list[bool] | None, float]:
+    """Read lightweight page text to skip unsupported pages before pdfminer."""
+    if pdfium is None:
+        return None, None, 0.0
+
+    started_at = time.perf_counter()
+    if isinstance(source, bytes):
+        content = source
+    else:
+        position = source.tell()
+        content = source.read()
+        source.seek(position)
+
+    document = None
+    try:
+        document = pdfium.PdfDocument(content)
+        parse_hints: list[bool] = []
+        gold_hints: list[bool] = []
+        for index in range(len(document)):
+            page = document[index]
+            text_page = page.get_textpage()
+            try:
+                page_text = text_page.get_text_range()
+                upper_page_text = page_text.upper()
+                has_gold = "GOLD" in upper_page_text
+                has_supported_block = (
+                    SUPPORTED_GOLD_PAGE_PATTERN.search(page_text) is not None
+                )
+                has_known_unsupported_block = (
+                    UNSUPPORTED_WEEKLY_GOLD_PAGE_PATTERN.search(page_text)
+                    is not None
+                )
+                gold_hints.append(has_gold)
+                # Page 1 carries the bulletin date and expiration map. Keep
+                # it even when it has no option block. Other pages only need
+                # pdfminer extraction when they contain a supported OG block;
+                # known weekly GOLD products (GWW/GWT/GWR/GMW) are intentionally
+                # outside the existing parser contract and produced no rows.
+                # Unknown GOLD layouts remain on the conservative path.
+                parse_hints.append(
+                    index == 0
+                    or has_supported_block
+                    or (has_gold and not has_known_unsupported_block)
+                )
+            finally:
+                text_page.close()
+                page.close()
+        return parse_hints, gold_hints, time.perf_counter() - started_at
+    except Exception as error:
+        logger.warning(
+            "cme_parser_gold_scan_failed error_type=%s",
+            type(error).__name__,
+        )
+        return None, None, time.perf_counter() - started_at
+    finally:
+        if document is not None:
+            document.close()
+
+
 def _parse_change(row: _Row) -> float | None:
     tail = [
         str(word["text"]).upper()
@@ -325,18 +399,34 @@ class CmeBulletinParser:
                     "O processamento do PDF excedeu o tempo limite configurado."
                 )
 
+        parse_page_hints, gold_page_hints, gold_scan_seconds = _gold_page_hints(
+            source
+        )
+        logger.info(
+            "cme_parser_gold_scan pages=%s parse_pages=%s elapsed_seconds=%.3f",
+            len(gold_page_hints) if gold_page_hints is not None else 0,
+            len(parse_page_hints) if parse_page_hints is not None else 0,
+            gold_scan_seconds,
+        )
+        ensure_within_time_limit()
+
         if isinstance(source, bytes):
             stream: BinaryIO = io.BytesIO(source)
         else:
             source.seek(0)
             stream = source
 
+        open_started_at = time.perf_counter()
         try:
             pdf = pdfplumber.open(stream)
         except Exception as error:
             raise CmeBulletinParseError(
                 "O arquivo PDF está corrompido ou não pode ser lido."
             ) from error
+        logger.info(
+            "cme_parser_pdf_open elapsed_seconds=%.3f",
+            time.perf_counter() - open_started_at,
+        )
 
         try:
             pages_total = len(pdf.pages)
@@ -358,11 +448,44 @@ class CmeBulletinParser:
             expiration_labels: set[str] = set()
             unresolved_labels: set[str] = set()
             ignored_lines = 0
+            normalization_seconds = 0.0
+            gold_detection_seconds = 0.0
+            interpretation_seconds = 0.0
             current_product: tuple[str, str, str] | None = None
             current_month: str | None = None
 
             for page_number, page in enumerate(pdf.pages, start=1):
                 ensure_within_time_limit()
+                page_started_at = time.perf_counter()
+                if (
+                    parse_page_hints is not None
+                    and page_number > 1
+                    and page_number <= len(parse_page_hints)
+                    and not parse_page_hints[page_number - 1]
+                ):
+                    pages_processed += 1
+                    if (
+                        gold_page_hints is not None
+                        and page_number <= len(gold_page_hints)
+                        and gold_page_hints[page_number - 1]
+                    ):
+                        gold_pages.add(page_number)
+                    current_product = None
+                    current_month = None
+                    page.flush_cache()
+                    page.close()
+                    page_elapsed = time.perf_counter() - page_started_at
+                    logger.info(
+                        "cme_parser_page page=%s pages_total=%s page_seconds=%.3f "
+                        "elapsed_seconds=%.3f contracts=%s skipped_fast_path=true",
+                        page_number,
+                        pages_total,
+                        page_elapsed,
+                        time.monotonic() - started_at,
+                        len(contracts),
+                    )
+                    continue
+
                 try:
                     words = page.extract_words(
                         x_tolerance=1,
@@ -394,10 +517,16 @@ class CmeBulletinParser:
                     first_page_rows = rows
                     bulletin_date = _parse_bulletin_date(first_page_rows)
                     expirations = _expiration_map(first_page_rows)
+                gold_detection_started_at = time.perf_counter()
                 full_page_text = " ".join(row.text for row in rows)
-                if "GOLD" in full_page_text.upper():
+                upper_page_text = full_page_text.upper()
+                if "GOLD" in upper_page_text:
                     gold_pages.add(page_number)
-                if "OPTIONS EOO'S AND BLOCKS" not in full_page_text.upper():
+                gold_detection_seconds += (
+                    time.perf_counter() - gold_detection_started_at
+                )
+                interpretation_started_at = time.perf_counter()
+                if "OPTIONS EOO'S AND BLOCKS" not in upper_page_text:
                     for row in rows:
                         matched_product = None
                         for pattern in GOLD_PRODUCT_ALIASES:
@@ -455,6 +584,7 @@ class CmeBulletinParser:
                         )
                         if expiration is None:
                             unresolved_labels.add(current_month)
+                        normalization_started_at = time.perf_counter()
                         contract = _parse_contract(
                             row,
                             page_number=page_number,
@@ -465,33 +595,48 @@ class CmeBulletinParser:
                             expiration=expiration,
                             bulletin_date=bulletin_date,
                         )
+                        normalization_seconds += (
+                            time.perf_counter() - normalization_started_at
+                        )
                         if contract is None:
                             if _number(first["text"]) is not None:
                                 ignored_lines += 1
                             continue
                         contracts.append(contract)
+                interpretation_seconds += (
+                    time.perf_counter() - interpretation_started_at
+                )
                 # pdfplumber caches page characters/objects. Release those
                 # caches immediately so the Render worker never accumulates
                 # all 67 pages while iterating.
                 page.flush_cache()
                 page.close()
                 del full_page_text, rows
-                if page_number == 1 or page_number % 10 == 0:
-                    logger.info(
-                        "cme_parser_progress page=%s pages_total=%s "
-                        "pages_processed=%s contracts=%s elapsed_seconds=%.2f",
-                        page_number,
-                        pages_total,
-                        pages_processed,
-                        len(contracts),
-                        time.monotonic() - started_at,
-                    )
+                logger.info(
+                    "cme_parser_page page=%s pages_total=%s page_seconds=%.3f "
+                    "elapsed_seconds=%.3f contracts=%s skipped_fast_path=false",
+                    page_number,
+                    pages_total,
+                    time.perf_counter() - page_started_at,
+                    time.monotonic() - started_at,
+                    len(contracts),
+                )
 
             if pages_processed == 0:
                 raise CmeBulletinParseError(
                     "Não foi possível extrair texto de nenhuma página."
                 )
 
+            logger.info(
+                "cme_parser_timing gold_detection_seconds=%.3f "
+                "interpretation_seconds=%.3f normalization_seconds=%.3f "
+                "total_seconds=%.3f contracts=%s",
+                gold_detection_seconds,
+                interpretation_seconds,
+                normalization_seconds,
+                time.monotonic() - started_at,
+                len(contracts),
+            )
             return ParsedCmeBulletin(
                 pages_total=pages_total,
                 pages_processed=pages_processed,

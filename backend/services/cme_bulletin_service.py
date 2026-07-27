@@ -10,6 +10,7 @@ import os
 import re
 import secrets
 import tempfile
+import time
 from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -118,51 +119,63 @@ def _write_parsed_preview(path: Path, parsed: ParsedCmeBulletin) -> None:
     # Write one contract at a time.  Building a second list of 4,397 model
     # dictionaries here would briefly duplicate the parser's largest object
     # graph and can exhaust a small Render worker.
-    with gzip.open(path, "wt", encoding="utf-8", compresslevel=6) as stream:
-        prefix = json.dumps(
-            {
-                "pages_total": parsed.pages_total,
-                "pages_processed": parsed.pages_processed,
-                "bulletin_date": (
-                    parsed.bulletin_date.isoformat()
-                    if parsed.bulletin_date
-                    else None
-                ),
-            },
-            ensure_ascii=False,
-            separators=(",", ":"),
-        )
-        stream.write(prefix[:-1])
-        stream.write(',"contracts":[')
-        for index, contract in enumerate(parsed.contracts):
-            if index:
-                stream.write(",")
-            contract_payload = contract.model_dump(mode="json")
-            contract_payload["raw_text"] = contract.raw_text[:200]
-            json.dump(
-                contract_payload,
-                stream,
+    started_at = time.perf_counter()
+    try:
+        with gzip.open(path, "wt", encoding="utf-8", compresslevel=6) as stream:
+            prefix = json.dumps(
+                {
+                    "pages_total": parsed.pages_total,
+                    "pages_processed": parsed.pages_processed,
+                    "bulletin_date": (
+                        parsed.bulletin_date.isoformat()
+                        if parsed.bulletin_date
+                        else None
+                    ),
+                },
                 ensure_ascii=False,
                 separators=(",", ":"),
             )
-            del contract_payload
-        stream.write('],"gold_pages":')
-        json.dump(parsed.gold_pages, stream, separators=(",", ":"))
-        stream.write(',"product_blocks":')
-        json.dump(parsed.product_blocks, stream, separators=(",", ":"))
-        stream.write(',"ignored_lines":')
-        stream.write(str(parsed.ignored_lines))
-        stream.write(',"failed_pages":')
-        json.dump(parsed.failed_pages, stream, separators=(",", ":"))
-        stream.write(',"expiration_labels":')
-        json.dump(parsed.expiration_labels, stream, separators=(",", ":"))
-        stream.write(',"unresolved_expiration_labels":')
-        json.dump(
-            parsed.unresolved_expiration_labels,
-            stream,
-            separators=(",", ":"),
+            stream.write(prefix[:-1])
+            stream.write(',"contracts":[')
+            for index, contract in enumerate(parsed.contracts):
+                if index:
+                    stream.write(",")
+                contract_payload = contract.model_dump(mode="json")
+                contract_payload["raw_text"] = contract.raw_text[:200]
+                json.dump(
+                    contract_payload,
+                    stream,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
+                del contract_payload
+            stream.write('],"gold_pages":')
+            json.dump(parsed.gold_pages, stream, separators=(",", ":"))
+            stream.write(',"product_blocks":')
+            json.dump(parsed.product_blocks, stream, separators=(",", ":"))
+            stream.write(',"ignored_lines":')
+            stream.write(str(parsed.ignored_lines))
+            stream.write(',"failed_pages":')
+            json.dump(parsed.failed_pages, stream, separators=(",", ":"))
+            stream.write(',"expiration_labels":')
+            json.dump(parsed.expiration_labels, stream, separators=(",", ":"))
+            stream.write(',"unresolved_expiration_labels":')
+            json.dump(
+                parsed.unresolved_expiration_labels,
+                stream,
+                separators=(",", ":"),
+            )
+            stream.write("}")
+    finally:
+        try:
+            serialized_bytes = path.stat().st_size
+        except OSError:
+            serialized_bytes = 0
+        logger.info(
+            "cme_preview_serialize elapsed_seconds=%.3f bytes=%s",
+            time.perf_counter() - started_at,
+            serialized_bytes,
         )
-        stream.write("}")
 
 
 def _read_parsed_preview(path: Path) -> ParsedCmeBulletin:
@@ -342,6 +355,7 @@ class CmeBulletinService:
             len(parsed.contracts),
             (datetime.now(UTC) - started_at).total_seconds(),
         )
+        validation_started_at = time.perf_counter()
         report = self.validator.validate(parsed)
         spot_alignment = align_spot(parsed.bulletin_date, None)
         eligibility = self.validator.eligibility(
@@ -354,6 +368,12 @@ class CmeBulletinService:
             parsed,
             report,
             retrieved_at=now,
+        )
+        logger.info(
+            "cme_preview_validation elapsed_seconds=%.3f status=%s eligibility=%s",
+            time.perf_counter() - validation_started_at,
+            report.status,
+            eligibility.status,
         )
         duplicate_id = find_latest_id_by_hash(
             file_hash,
@@ -386,8 +406,14 @@ class CmeBulletinService:
             raise CmeBulletinParseError(
                 "Não foi possível preparar o preview temporário."
             ) from error
+        cache_started_at = time.perf_counter()
         self.cache.put(
             _PreviewEntry(preview=preview, parsed_path=parsed_path)
+        )
+        logger.info(
+            "cme_preview_cache_persist elapsed_seconds=%.3f entries=%s",
+            time.perf_counter() - cache_started_at,
+            self.cache.count(),
         )
         logger.info(
             "cme_preview_completed contracts=%s elapsed_seconds=%.2f",
