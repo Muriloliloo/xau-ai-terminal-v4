@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { CardHeader } from "@/components/cards/CardHeader";
 import { StatusBadge } from "@/components/cards/StatusBadge";
 import { Header } from "@/components/layout/Header";
+import { CmeBulletinImport } from "@/components/workspace/CmeBulletinImport";
 import { ManualOptionsImport } from "@/components/workspace/ManualOptionsImport";
 import { getHealth, getProvidersStatus } from "@/lib/api";
 import { formatTimestamp, UNAVAILABLE_LABEL } from "@/lib/formatters";
@@ -239,6 +240,9 @@ export function SystemWorkspace() {
 
       <div className="mt-3">
         <ManualOptionsImport onImported={() => void refreshPanel()} />
+      </div>
+      <div className="mt-3">
+        <CmeBulletinImport onImported={() => void refreshPanel()} />
       </div>
     </>
   );

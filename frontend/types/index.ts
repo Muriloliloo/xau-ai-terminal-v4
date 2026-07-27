@@ -357,6 +357,190 @@ export interface ManualImportResponse {
   analysis: AnalysisResponse | null;
 }
 
+export type CmeValidationStatus =
+  | "valid"
+  | "valid_with_warnings"
+  | "partial"
+  | "incompatible"
+  | "rejected";
+
+export type CmeEligibility =
+  | "full_analysis_allowed"
+  | "partial_analysis_allowed"
+  | "open_interest_only"
+  | "blocked";
+
+export interface CmeBulletinContract {
+  symbol: string;
+  exchange: string;
+  product_code: string;
+  product_name: string;
+  expiration: string | null;
+  contract_month: string;
+  strike: number;
+  option_type: "CALL" | "PUT";
+  settlement: number | null;
+  volume: number | null;
+  open_outcry_volume: number | null;
+  globex_volume: number | null;
+  pnt_volume: number | null;
+  open_interest: number | null;
+  open_interest_change: number | null;
+  delta: number | null;
+  implied_volatility: number | null;
+  gamma: number | null;
+  underlying_price: number | null;
+  market_date: string | null;
+  source: string;
+  source_page: number;
+  source_line: number;
+  raw_text: string;
+}
+
+export interface CmeValidationReport {
+  status: CmeValidationStatus;
+  pages_total: number;
+  pages_processed: number;
+  gold_pages: number[];
+  blocks_found: number;
+  product_codes: string[];
+  calls_found: number;
+  puts_found: number;
+  expiration_labels: string[];
+  expirations_found: string[];
+  valid_contracts: number;
+  partial_contracts: number;
+  ignored_lines: number;
+  duplicates: number;
+  invalid_strikes: number;
+  invalid_open_interest: number;
+  invalid_volume: number;
+  missing_expiration: number;
+  missing_critical_fields: string[];
+  failed_pages: number[];
+  warnings: string[];
+  blocking_errors: string[];
+  issues: Array<{
+    page: number | null;
+    line: number | null;
+    field: string;
+    message: string;
+  }>;
+}
+
+export interface CmeEligibilityReport {
+  status: CmeEligibility;
+  reason: string;
+  engines_allowed: string[];
+  contracts_with_open_interest: number;
+  contracts_with_volume: number;
+  contracts_with_gamma: number;
+  contracts_with_expiration: number;
+  has_calls: boolean;
+  has_puts: boolean;
+  has_compatible_spot: boolean;
+}
+
+export interface CmeSpotAlignment {
+  status:
+    | "aligned"
+    | "acceptable_with_warning"
+    | "stale"
+    | "incompatible"
+    | "unavailable";
+  bulletin_date: string | null;
+  spot_timestamp: string | null;
+  date_difference_days: number | null;
+  warning: string | null;
+}
+
+export interface CmeBulletinMetadata {
+  provider: "cme_bulletin";
+  source: string;
+  freshness_type: "end_of_day";
+  is_manual: true;
+  is_demo: false;
+  is_partial: boolean;
+  bulletin_date: string | null;
+  market_timestamp: string | null;
+  retrieved_at: string;
+  delay_minutes: null;
+  warnings: string[];
+  missing_fields: string[];
+  capabilities: string[];
+}
+
+export interface CmeOpenInterestAnalysis {
+  call_oi_total: number;
+  put_oi_total: number;
+  total_oi: number;
+  net_oi: number;
+  largest_call_oi_strike: number | null;
+  largest_put_oi_strike: number | null;
+  largest_concentration_strike: number | null;
+  largest_concentration_pct: number;
+  oi_concentration_score: number;
+  top_10_strikes: OpenInterestStrike[];
+  distribution_by_strike: OpenInterestStrike[];
+}
+
+export interface CmeBulletinPreview {
+  preview_id: string;
+  expires_at: string;
+  filename: string;
+  file_hash: string;
+  duplicate: boolean;
+  duplicate_import_id: number | null;
+  metadata: CmeBulletinMetadata;
+  report: CmeValidationReport;
+  eligibility: CmeEligibilityReport;
+  spot_alignment: CmeSpotAlignment;
+  sample_contracts: CmeBulletinContract[];
+}
+
+export interface CmeBulletinImport {
+  id: number;
+  filename: string;
+  file_hash: string;
+  imported_at: string;
+  reprocessed: boolean;
+  reprocessed_from_id: number | null;
+  metadata: CmeBulletinMetadata;
+  report: CmeValidationReport;
+  eligibility: CmeEligibilityReport;
+  spot_alignment: CmeSpotAlignment;
+  contract_count: number;
+  contracts: CmeBulletinContract[];
+  open_interest_analysis: CmeOpenInterestAnalysis | null;
+  snapshot_created: false;
+}
+
+export interface CmeBulletinConfirmResponse {
+  imported: true;
+  result: CmeBulletinImport;
+}
+
+export interface CmeBulletinLatestResponse {
+  available: boolean;
+  result: CmeBulletinImport | null;
+}
+
+export interface CmeBulletinStatusResponse {
+  provider: "cme_bulletin";
+  available: boolean;
+  preview_count: number;
+  preview_ttl_seconds: number;
+  max_previews: number;
+  max_file_bytes: number;
+  max_pages: number;
+  max_processing_seconds: number;
+  latest_import_id: number | null;
+  latest_bulletin_date: string | null;
+  freshness_type: "end_of_day";
+  is_manual: true;
+  legal_notice: string;
+}
+
 export interface InstitutionalLevels {
   callWall: number | null;
   putWall: number | null;

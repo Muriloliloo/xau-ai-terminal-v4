@@ -11,6 +11,7 @@ import { GexProfile } from "@/components/charts/GexProfile";
 import { OpenInterestDistribution } from "@/components/charts/OpenInterestDistribution";
 import { VolatilitySmile } from "@/components/charts/VolatilitySmile";
 import { AiMarketSummary } from "@/components/institutional/AiMarketSummary";
+import { CmeBulletinDashboard } from "@/components/institutional/CmeBulletinDashboard";
 import { InstitutionalReport } from "@/components/institutional/InstitutionalReport";
 import { DashboardSkeleton } from "@/components/layout/DashboardSkeleton";
 import { ErrorState } from "@/components/layout/ErrorState";
@@ -24,6 +25,11 @@ import {
   getSnapshot,
 } from "@/lib/api";
 import { buildMarketAlerts, findDominantStrike } from "@/lib/alerts";
+import {
+  CME_BULLETIN_UPDATED_EVENT,
+  readCmeBulletinSession,
+  type CmeBulletinDashboardData,
+} from "@/lib/cmeBulletin";
 import {
   formatCompact,
   formatNumber,
@@ -41,7 +47,8 @@ import type {
 } from "@/types";
 
 interface DashboardData {
-  analysis: AnalysisResponse;
+  analysis: AnalysisResponse | null;
+  cme: CmeBulletinDashboardData | null;
   health: HealthResponse;
   spot: MarketSpotResponse | null;
 }
@@ -49,12 +56,17 @@ interface DashboardData {
 const optionDataProvider = getOptionDataProvider();
 
 async function loadDashboard(): Promise<DashboardData> {
+  const cme = readCmeBulletinSession();
+  if (cme) {
+    const health = await getHealth();
+    return { analysis: null, cme, health, spot: null };
+  }
   const [health, analysis, spot] = await Promise.all([
     getHealth(),
     optionDataProvider.load(),
     getMarketSpot(),
   ]);
-  return { analysis, health, spot };
+  return { analysis, cme: null, health, spot };
 }
 
 export function Dashboard({ snapshotId }: { snapshotId?: number }) {
@@ -64,7 +76,7 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
       getHealth(),
       getSnapshot(snapshotId),
     ]);
-    return { analysis: snapshot.analysis, health, spot: null };
+    return { analysis: snapshot.analysis, cme: null, health, spot: null };
   }, [snapshotId]);
   const { data: resource, error, loading, reload } = useRemoteResource(loader);
   const { preferences } = useWorkspace();
@@ -77,6 +89,17 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
     const timer = window.setInterval(() => void reload(), 60_000);
     return () => window.clearInterval(timer);
   }, [preferences.autoRefresh, reload, snapshotId]);
+
+  useEffect(() => {
+    if (snapshotId) return;
+    const refreshFromSession = () => void reload();
+    window.addEventListener(CME_BULLETIN_UPDATED_EVENT, refreshFromSession);
+    return () =>
+      window.removeEventListener(
+        CME_BULLETIN_UPDATED_EVENT,
+        refreshFromSession,
+      );
+  }, [reload, snapshotId]);
 
   async function saveCurrentSnapshot() {
     if (!data) return;
@@ -120,6 +143,18 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
           <AlertPanel alerts={[apiFailureAlert]} />
         </div>
       </>
+    );
+  }
+
+  if (resource?.cme) {
+    return (
+      <CmeBulletinDashboard
+        data={resource.cme}
+        apiConnected={resource.health.status === "ok"}
+        loading={loading}
+        onRefresh={() => void reload()}
+        onCleared={() => void reload()}
+      />
     );
   }
 

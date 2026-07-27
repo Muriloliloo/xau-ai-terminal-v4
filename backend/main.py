@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api import (
     analysis,
+    cme_bulletin,
     gex,
     health,
     history,
@@ -71,3 +72,4 @@ app.include_router(open_interest.router, prefix="/api")
 app.include_router(gex.router, prefix="/api")
 app.include_router(volatility.router, prefix="/api")
 app.include_router(market_data.router, prefix="/api")
+app.include_router(cme_bulletin.router, prefix="/api")

@@ -23,6 +23,7 @@ export const NAVIGATION = [
   { href: "/replay", label: "▶ Market Replay", shortLabel: "Replay" },
   { href: "/favorites", label: "★ Favoritos", shortLabel: "Favoritos" },
   { href: "/system", label: "Sistema", shortLabel: "Sistema" },
+  { href: "/roadmap", label: "◇ Roadmap", shortLabel: "Roadmap" },
   { href: "/preferences", label: "Preferences", shortLabel: "Preferências" },
   { href: "/settings", label: "Configurações", shortLabel: "Ajustes" },
 ] as const;

@@ -160,7 +160,11 @@ function dataContext(context: KnowledgeContext): string[] {
   const metadata = context.metadata;
   let description: string;
 
-  if (metadata.isDemo || metadata.freshnessType === "demo") {
+  if (context.cmeBulletin) {
+    description = context.cmeBulletin.bulletinDate
+      ? `Com base no boletim de fechamento da CME referente a ${context.cmeBulletin.bulletinDate}.`
+      : "Com base em boletim de fechamento da CME sem data de mercado identificável.";
+  } else if (metadata.isDemo || metadata.freshnessType === "demo") {
     description =
       "Com base em dados demonstrativos; não representam condições de mercado ao vivo.";
   } else if (metadata.isManual || metadata.freshnessType === "manual") {
@@ -211,6 +215,19 @@ function buildOverview(
   const summary = context.aiSummary;
   const report = context.dealerReport;
   const facts: string[] = [];
+
+  if (context.cmeBulletin) {
+    const bulletin = context.cmeBulletin;
+    facts.push(
+      `Boletim CME de fechamento: ${formatNumber(bulletin.contractCount)} contratos de opções de ouro reconhecidos.`,
+      `Estrutura: ${formatNumber(bulletin.callsFound)} Calls, ${formatNumber(bulletin.putsFound)} Puts e ${formatNumber(bulletin.expirationCount)} vencimentos com data explícita.`,
+      `Cobertura: ${formatNumber(bulletin.contractsWithOpenInterest)} contratos com Open Interest e ${formatNumber(bulletin.contractsWithVolume)} com volume reportado.`,
+      `Elegibilidade da análise: ${bulletin.eligibility}.`,
+    );
+    sections.push({ title: "Boletim CME", content: facts });
+    addCitation(citations, citation("CME Bulletin", context));
+    return;
+  }
 
   if (present(summary?.marketRegime)) {
     facts.push(`Regime no arquivo analisado: ${summary.marketRegime}.`);
@@ -267,6 +284,29 @@ function buildLevels(
   const gammaMagnet = finite(gamma?.gamma_magnet)
     ? gamma.gamma_magnet
     : analytics.gammaMagnet;
+  if (
+    context.cmeBulletin
+    && !finite(callWall)
+    && !finite(putWall)
+  ) {
+    const oi = context.openInterest;
+    const largestCall = oi?.top_10_strikes
+      .filter((row) => row.call_oi > 0)
+      .sort((a, b) => b.call_oi - a.call_oi)[0];
+    const largestPut = oi?.top_10_strikes
+      .filter((row) => row.put_oi > 0)
+      .sort((a, b) => b.put_oi - a.put_oi)[0];
+    if (largestCall) {
+      levels.push(
+        `Maior concentração de Call OI entre os strikes agregados: ${formatNumber(largestCall.strike)}.`,
+      );
+    }
+    if (largestPut) {
+      levels.push(
+        `Maior concentração de Put OI entre os strikes agregados: ${formatNumber(largestPut.strike)}.`,
+      );
+    }
+  }
   if (finite(callWall)) {
     levels.push(`Call Wall: ${formatNumber(callWall)}.`);
   }
@@ -283,7 +323,12 @@ function buildLevels(
 
   sections.push({ title: "Níveis institucionais", content: levels });
   if (gamma) addCitation(citations, citation("Gamma", context));
-  addCitation(citations, citation("Analytics", context));
+  if (context.cmeBulletin) {
+    addCitation(citations, citation("CME Bulletin", context));
+    addCitation(citations, citation("Open Interest", context));
+  } else {
+    addCitation(citations, citation("Analytics", context));
+  }
 }
 
 function buildGex(
@@ -529,6 +574,7 @@ function buildSources(
   if (context.volatility?.volatility_summary.has_iv) {
     available.push("Volatility");
   }
+  if (context.cmeBulletin) available.push("CME Bulletin");
   if (!available.length) return;
 
   sections.push({

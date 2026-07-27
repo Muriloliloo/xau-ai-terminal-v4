@@ -27,6 +27,10 @@ OpenAPI: `http://localhost:8000/api/docs`
 | GET | `/market/options` | cadeia efetiva e metadata |
 | GET | `/market/metadata` | metadata por capacidade |
 | POST | `/market/options/import` | prévia/confirmacão de CSV manual |
+| POST | `/market/cme-bulletin/preview` | prévia de PDF CME Section 64 (multipart, sem persistir) |
+| POST | `/market/cme-bulletin/confirm` | confirma preview CME elegível e registra importação |
+| GET | `/market/cme-bulletin/status` | limites, cache e última importação CME |
+| GET | `/market/cme-bulletin/latest` | última importação CME confirmada |
 
 ## Análise V2
 
@@ -46,6 +50,21 @@ campos ausentes e fallback. Snapshots antigos sem o bloco continuam válidos.
 Todos os endpoints `GET /market/*` são somente leitura e não criam snapshots.
 Quando o provider não está configurado ou o recurso é premium, retornam estado
 `unavailable` com dados nulos/vazios e mensagem sanitizada.
+
+### CME Daily Bulletin (Section 64)
+
+Os quatro endpoints `/market/cme-bulletin/*` formam um fluxo de duas etapas para
+PDFs fornecidos manualmente. O preview calcula SHA-256, extrai e valida os
+blocos de ouro e mantém o resultado somente em cache com TTL; ele não altera
+provider, engines ou snapshots. A confirmação exige um `preview_id` ainda
+válido, rejeita estados `rejected`/`incompatible`, invalida o preview após uso e
+persiste apenas metadata, relatório, contratos normalizados e hash (nunca o PDF
+integral). Repetição do mesmo hash exige `allow_reprocess=true` explicitamente.
+
+Todas as respostas CME identificam `freshness_type=end_of_day`,
+`is_manual=true` e os avisos/campos ausentes. O boletim de referência não
+contém Gamma, IV ou spot; portanto, a elegibilidade resultante é
+`open_interest_only` e o Gamma/GEX Engine não é executado.
 
 `POST /market/options/import` usa `confirm=false` por padrão. Nesse modo apenas
 valida e devolve prévia. `confirm=true` executa os mesmos engines dos endpoints

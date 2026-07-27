@@ -243,6 +243,24 @@ Snapshots Sprint 4 preservam `volatility_analysis` dentro de `analysis_json`.
 A comparação inclui IV ponderada, Call/Put IV, skew e Expected Move disponível.
 O campo opcional mantém snapshots anteriores legíveis sem recálculo.
 
+## CME Daily Bulletin (fechamento diário)
+
+```text
+PDF local fornecido pelo usuário
+ -> POST /api/market/cme-bulletin/preview
+ -> hash + parser textual + validação + gate de elegibilidade
+ -> cache temporário com TTL (sem provider/engine/snapshot)
+ -> POST /api/market/cme-bulletin/confirm
+ -> metadata end_of_day + contratos rastreáveis + relatório em SQLite
+ -> CmeBulletinProvider confirmado
+ -> apenas engines elegíveis (arquivo de referência: Open Interest)
+```
+
+O boletim não é combinado silenciosamente com spot externo: o serviço retorna
+`aligned`, `acceptable_with_warning`, `stale`, `incompatible` ou `unavailable`
+conforme as datas fornecidas. Gamma, IV, spot e vencimentos sem data exata
+permanecem `null`; não há fallback demo para completar a mesma análise.
+
 ## Histórico, settings e Streamlit
 
 ```text

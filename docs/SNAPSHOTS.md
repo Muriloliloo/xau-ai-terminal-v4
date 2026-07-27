@@ -2,6 +2,12 @@
 
 ## Objetivo
 
+Importações CME `open_interest_only` são registros de fechamento auditáveis em
+`cme_bulletin_imports`; elas não criam snapshot institucional enquanto não
+houver dados suficientes para a análise completa. Se uma fonte CME futura for
+elegível para snapshot, a metadata deverá preservar provider, `bulletin_date`,
+`freshness_type=end_of_day`, hash, validação, warnings e alinhamento com spot.
+
 Cada análise concluída por `POST /api/analysis/demo` ou
 `POST /api/analysis/upload` é persistida automaticamente. O registro conserva o
 JSON integral de `AnalysisResponse`, portanto o dashboard pode ser reconstruído

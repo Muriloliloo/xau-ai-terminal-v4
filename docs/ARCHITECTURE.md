@@ -141,14 +141,17 @@ O frontend web 4.0 usa Next.js App Router e separa:
 - `components/institutional`: dashboard, upload, Dealer Report e confiança;
 - `components/snapshots`: listagem, ações e comparação;
 - `components/copilot`: chat, histórico, sugestões e respostas estruturadas;
+- `components/roadmap`: timeline, fases, dependências e progresso declarativo;
 - `components/workspace`: telemetria dos providers e importação manual;
 - `lib/copilot`: Knowledge Engine, contexto, persistência e providers;
+- `lib/productRoadmap.ts`: fonte única dos marcos, status e critérios de produto;
 - `lib/api.ts`: cliente HTTP central;
 - `lib/useRemoteResource.ts`: carregamento remoto e retry;
 - `lib/alerts.ts`: alertas derivados do contrato real;
 - `lib/formatters.ts`: formatação;
 - `lib/constants.ts`: navegação e URL da API;
 - `types/`: contratos TypeScript equivalentes aos schemas Pydantic.
+- `types/roadmap.ts`: contrato tipado do Product Roadmap.
 
 Detalhes visuais e responsivos estão em [FRONTEND.md](FRONTEND.md).
 
@@ -164,6 +167,28 @@ A UI depende de `CopilotProvider`, não da implementação local. Assim, um
 provider futuro pode conectar um LLM por meio de uma camada servidora sem
 alterar componentes, histórico ou formato da resposta. Consulte
 [COPILOT.md](COPILOT.md).
+
+### Product Roadmap
+
+`/roadmap` é uma superfície exclusivamente frontend e documental. A rota
+renderiza dados estáticos tipados de `lib/productRoadmap.ts` por componentes
+reutilizáveis em `components/roadmap/`. Não chama API, não persiste estado e não
+participa de cálculos institucionais.
+
+```mermaid
+flowchart LR
+    DATA["productRoadmap.ts"] --> ROUTE["/roadmap"]
+    TYPES["types/roadmap.ts"] --> DATA
+    DATA --> COMPONENTS["RoadmapWorkspace / Phase / Progress"]
+    COMPONENTS --> ROUTE
+    DOC["docs/PRODUCT_ROADMAP.md"] -. governança .-> DATA
+```
+
+O status operacional é separado do status de implementação: providers e
+configurações podem existir no código sem que uma consulta externa ou deploy
+seja marcado como concluído. O documento principal é
+[PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md); [ROADMAP.md](ROADMAP.md) funciona como
+índice técnico para evitar duas fontes narrativas concorrentes.
 
 ### Extensão do contrato 4.0
 
@@ -261,3 +286,15 @@ Engines não importam interface, FastAPI ou SQLite.
 - Gamma Flip sem curva completa/spot é estimado;
 - fórmulas GEX V1 inalteradas e extensões V2 aditivas;
 - Alert e Market Engine continuam limitados às regras existentes.
+
+### CME Daily Bulletin Provider
+
+`CmeBulletinService` coordena o fluxo manual de duas etapas (preview e
+confirmação). `CmeBulletinParser` extrai texto nativo/coordenadas de todas as
+páginas da Section 64, `CmeBulletinValidator` classifica a importação e aplica
+o gate de elegibilidade, e `CmeBulletinProvider` expõe somente o resultado
+confirmado. O PDF nunca é salvo no SQLite; são persistidos hash, metadata,
+relatório e contratos rastreáveis por página/linha. O provider é
+`end_of_day`/manual e não altera a Provider Factory ou os engines protegidos.
+O repositório usa a tabela SQLite `cme_bulletin_imports` para hash, relatório,
+metadata, alinhamento e contratos normalizados; o PDF bruto não é persistido.

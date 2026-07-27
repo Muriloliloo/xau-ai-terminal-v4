@@ -28,6 +28,14 @@ não muda suas fórmulas e não cria valores para campos ausentes.
 | `manual` | cadeia de opções e spot quando o arquivo o contém | `manual` | não |
 | `csv` | arquivo local expressamente autorizado | `manual` | não |
 | `demo` | `data/sample_options.csv` | `demo` | não |
+| `cme_bulletin` | opções de ouro, OI, volume e settlement do Section 64 | `end_of_day` | não |
+
+`cme_bulletin` só fica disponível após confirmação explícita de um PDF local
+fornecido pelo usuário. É um provider manual de fechamento diário, sem download
+automático, scraping ou atualização intradiária. Como o contrato CME pode ser
+parcial, a metadata sempre expõe `is_partial`, `warnings` e `missing_fields`.
+No arquivo de referência, Gamma, IV e spot são ausentes; apenas o Open Interest
+Engine é elegível.
 
 O Alpha Vantage documenta `GOLD_SILVER_SPOT` e `GOLD_SILVER_HISTORY`.
 O provider não classifica o spot como tempo real porque o plano/entitlement
@@ -102,8 +110,9 @@ um campo opcional é registrada; não é convertida silenciosamente em zero.
 
 ## Factory e fallback
 
-`MARKET_DATA_PROVIDER` aceita `auto`, `alpha_vantage`, `manual`, `csv` e
-`demo`.
+`MARKET_DATA_PROVIDER` aceita `auto`, `alpha_vantage`, `manual`, `csv`,
+`cme_bulletin` e `demo`. O provider CME não é selecionado silenciosamente:
+deve existir uma importação confirmada na execução.
 
 Em `auto`, a factory procura:
 
@@ -138,4 +147,3 @@ caminhos locais não são retornados.
 
 Um provider novo não deve exigir alterações em Gamma, Dealer, Snapshot, Open
 Interest ou nos componentes consumidores.
-

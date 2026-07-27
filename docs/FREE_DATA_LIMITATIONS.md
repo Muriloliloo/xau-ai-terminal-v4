@@ -26,6 +26,16 @@ sempre na página oficial: <https://www.alphavantage.co/premium/>.
 - SLA, entitlement profissional ou direitos de redistribuição;
 - IV Rank/Percentile sem histórico próprio suficiente.
 
+## CME Daily Bulletin
+
+O boletim CME Group Section 64 é tratado exclusivamente como dado de
+fechamento diário (`end_of_day`). O usuário deve fornecer manualmente um PDF
+que tenha direito de usar; o terminal não baixa, raspa ou redistribui o
+documento. Termos e licenças aplicáveis da CME continuam sob responsabilidade
+do usuário. No arquivo de referência, Gamma, IV e spot não são publicados: a
+importação fica em `open_interest_only`, sem executar Gamma/GEX e sem inventar
+valores ausentes.
+
 Quando o plano não oferece um recurso, a API responde:
 `Recurso não disponível no plano configurado.`
 
@@ -53,4 +63,3 @@ declarada, mas não concede direitos sobre dados de terceiros.
 Dados manuais, históricos, atrasados e demonstrativos não devem ser
 interpretados como estado atual do mercado. O Copilot e o dashboard exibem essa
 limitação junto dos resultados.
-

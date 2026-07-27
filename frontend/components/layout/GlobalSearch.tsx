@@ -64,6 +64,12 @@ const SEARCH_ITEMS = [
     href: "/academy",
     group: "Educação",
   },
+  {
+    label: "Product Roadmap",
+    keywords: "roadmap produto evolução planejamento v5 v6 dependências",
+    href: "/roadmap",
+    group: "Produto",
+  },
 ] as const;
 
 export function GlobalSearch() {

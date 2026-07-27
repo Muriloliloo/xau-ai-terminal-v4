@@ -697,3 +697,141 @@ test("factory do Copilot mantém Knowledge Engine como fallback local", async ()
   assert.equal(metadata.external, false);
   assert.equal(await provider.isAvailable(), true);
 });
+
+test("Product Roadmap usa status, progresso e dependências válidos", () => {
+  const roadmap = loadTypeScript("lib/productRoadmap.ts");
+  const { ROADMAP_STATUSES } = loadTypeScript("types/roadmap.ts");
+  const phases = roadmap.PRODUCT_ROADMAP.phases;
+
+  assert.deepEqual(roadmap.validateProductRoadmap(), []);
+  assert.deepEqual(ROADMAP_STATUSES, [
+    "concluído",
+    "em validação",
+    "em desenvolvimento",
+    "planejado",
+    "futuro",
+    "bloqueado",
+  ]);
+  assert.ok(phases.every((phase) => phase.progress >= 0 && phase.progress <= 100));
+  assert.ok(
+    phases.every((phase) =>
+      phase.status === "concluído"
+        ? phase.progress === 100
+        : phase.progress < 100,
+    ),
+  );
+  assert.equal(roadmap.phaseById("foundation").status, "concluído");
+  assert.equal(
+    roadmap.phaseById("foundation-operations").status,
+    "em validação",
+  );
+  assert.notEqual(
+    roadmap.phaseById("v5-institutional-data").status,
+    "concluído",
+  );
+});
+
+test("validador do Roadmap rejeita progresso, status e dependência inválidos", () => {
+  const roadmap = loadTypeScript("lib/productRoadmap.ts");
+  const invalidPhases = [
+    {
+      id: "invalid",
+      version: "V0",
+      title: "Inválida",
+      objective: "Exercitar o contrato.",
+      status: "publicado",
+      progress: 120,
+      dependencies: ["missing"],
+      deliverables: [],
+      criteria: [],
+    },
+  ];
+  const errors = roadmap.validateProductRoadmap(invalidPhases);
+
+  assert.ok(errors.some((error) => error.includes("status inválido")));
+  assert.ok(errors.some((error) => error.includes("entre 0 e 100")));
+  assert.ok(errors.some((error) => error.includes("não encontrada")));
+});
+
+test("rota Roadmap está integrada à Sidebar e à pesquisa global", () => {
+  const { NAVIGATION } = loadTypeScript("lib/constants.ts");
+  const roadmapIndex = NAVIGATION.findIndex((item) => item.href === "/roadmap");
+  const systemIndex = NAVIGATION.findIndex((item) => item.href === "/system");
+  const preferencesIndex = NAVIGATION.findIndex(
+    (item) => item.href === "/preferences",
+  );
+  const searchSource = fs.readFileSync(
+    path.join(frontendRoot, "components/layout/GlobalSearch.tsx"),
+    "utf8",
+  );
+
+  assert.equal(
+    fs.existsSync(path.join(frontendRoot, "app/roadmap/page.tsx")),
+    true,
+  );
+  assert.ok(roadmapIndex > systemIndex);
+  assert.ok(roadmapIndex < preferencesIndex);
+  assert.match(searchSource, /label: "Product Roadmap"/);
+  assert.match(searchSource, /href: "\/roadmap"/);
+  assert.match(searchSource, /v5 v6 dependências/);
+});
+
+test("Roadmap renderiza fase sem riscos ou limitações opcionais", () => {
+  const React = require("react");
+  const { renderToStaticMarkup } = require("react-dom/server");
+  const { RoadmapPhase } = loadTypeScript(
+    "components/roadmap/RoadmapPhase.tsx",
+  );
+  const markup = renderToStaticMarkup(
+    React.createElement(RoadmapPhase, {
+      phase: {
+        id: "optional",
+        version: "V0",
+        title: "Fase opcional",
+        objective: "Validar campos opcionais.",
+        status: "planejado",
+        progress: 0,
+        dependencies: [],
+        deliverables: ["Entrega"],
+        criteria: ["Critério"],
+      },
+      phases: [],
+    }),
+  );
+
+  assert.match(markup, /Fase opcional/);
+  assert.match(markup, /Progresso declarado/);
+  assert.doesNotMatch(markup, />Riscos</);
+  assert.doesNotMatch(markup, />Limitações</);
+});
+
+test("Roadmap preserva tema, responsividade e semântica acessível", () => {
+  const workspace = fs.readFileSync(
+    path.join(frontendRoot, "components/roadmap/RoadmapWorkspace.tsx"),
+    "utf8",
+  );
+  const phase = fs.readFileSync(
+    path.join(frontendRoot, "components/roadmap/RoadmapPhase.tsx"),
+    "utf8",
+  );
+  const progress = fs.readFileSync(
+    path.join(frontendRoot, "components/roadmap/RoadmapProgress.tsx"),
+    "utf8",
+  );
+  const globals = fs.readFileSync(
+    path.join(frontendRoot, "app/globals.css"),
+    "utf8",
+  );
+
+  assert.match(workspace, /sm:grid-cols-2/);
+  assert.match(workspace, /lg:grid-cols-4/);
+  assert.match(workspace, /bg-terminal-card/);
+  assert.doesNotMatch(`${workspace}${phase}`, /#[\da-f]{3,8}/i);
+  assert.match(phase, /aria-labelledby/);
+  assert.match(phase, /scroll-mt-20 overflow-hidden/);
+  assert.match(progress, /role="progressbar"/);
+  assert.match(progress, /aria-valuemin=\{0\}/);
+  assert.match(progress, /aria-valuemax=\{100\}/);
+  assert.match(globals, /--color-terminal-card:/);
+  assert.match(globals, /\[data-theme="obsidian"\] \.bg-terminal-card/);
+});

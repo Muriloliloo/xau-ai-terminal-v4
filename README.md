@@ -27,6 +27,8 @@ A tela principal oferece:
 - cards de IV, Volatility Smile e Expected Move somente quando existe spot.
 - Institutional Copilot local, com histórico e respostas citando os indicadores
   internos utilizados.
+- Product Roadmap declarativo com dependências, critérios, riscos e limitações
+  das fases Foundation, V5 e V6.
 
 O preço e sua variação permanecem indisponíveis até existir uma fonte real. A
 interface mostra esse estado explicitamente e não cria cotações fictícias.
@@ -112,6 +114,27 @@ Consulte:
 - `docs/DATA_PROVIDERS.md`;
 - `docs/FREE_DATA_LIMITATIONS.md`;
 - `docs/MANUAL_OPTION_IMPORT.md`.
+
+Para a importação manual do boletim CME Section 64, consulte também
+`docs/CME_BULLETIN_IMPORT.md`, `docs/CME_DATA_LIMITATIONS.md` e
+`docs/CME_FIELD_MAPPING.md`.
+
+## Product Roadmap — V5 e V6
+
+A rota `/roadmap` apresenta a evolução planejada da plataforma sem alterar
+engines, APIs ou providers. Status e percentuais são declarativos e vêm de uma
+única fonte tipada em `frontend/lib/productRoadmap.ts`.
+
+A Foundation V4 representa somente recursos existentes e validados no código.
+A integração Alpha Vantage com chave real e os deploys externos permanecem
+**em validação** até existirem health checks e evidência operacional
+reproduzível. O projeto não afirma possuir Option Chain automática nem dados em
+tempo real garantidos; os engines continuam dependentes de CSV, importação
+manual ou demonstração.
+
+O plano completo, critérios de conclusão, dependências, riscos e visão futura
+estão em `docs/PRODUCT_ROADMAP.md`. `docs/ROADMAP.md` permanece como índice
+técnico consolidado, sem duplicar o conteúdo de produto.
 
 ## Requisitos
 
@@ -217,6 +240,18 @@ python -m streamlit run app.py
 
 O Streamlit importa diretamente `backend/core`, `backend/services` e
 `backend/database`; não existem cópias separadas dos engines.
+
+## CME Daily Bulletin (Section 64)
+
+O terminal aceita um **CME Group Daily Information Bulletin** somente como
+arquivo PDF local fornecido manualmente. O fluxo `preview -> confirm` extrai os
+blocos explícitos `OG/OG1/OG2/OG4/OG5 CALL/PUT`, valida cada contrato e persiste
+hash, metadata e rastreabilidade; o PDF integral não é armazenado. A fonte é
+rotulada `end_of_day`/manual, nunca tempo real. No boletim de referência,
+Gamma, IV e spot não estão disponíveis: a elegibilidade fica
+`open_interest_only` e Gamma/GEX permanecem bloqueados. Consulte
+[`docs/CME_BULLETIN_IMPORT.md`](docs/CME_BULLETIN_IMPORT.md) antes de importar e
+verifique os termos/licenças aplicáveis da CME.
 
 ## Testes e validação
 

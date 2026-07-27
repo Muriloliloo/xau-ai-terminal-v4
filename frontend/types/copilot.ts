@@ -18,6 +18,7 @@ export const KNOWLEDGE_INDICATORS = [
   "GEX",
   "Gamma",
   "Volatility",
+  "CME Bulletin",
 ] as const;
 
 export type KnowledgeIndicator = (typeof KNOWLEDGE_INDICATORS)[number];
@@ -65,6 +66,18 @@ export interface KnowledgeAnalytics {
   gammaMagnet: number | null;
 }
 
+export interface KnowledgeCmeBulletin {
+  bulletinDate: string | null;
+  importedAt: string;
+  contractCount: number;
+  callsFound: number;
+  putsFound: number;
+  expirationCount: number;
+  contractsWithOpenInterest: number;
+  contractsWithVolume: number;
+  eligibility: string;
+}
+
 export interface KnowledgeContext {
   dealerReport: DealerReportV2 | null;
   replay: SnapshotSummary[];
@@ -75,6 +88,7 @@ export interface KnowledgeContext {
   gex: GammaExposureAnalysis | null;
   gamma: GammaSummaryV2 | null;
   volatility: VolatilityAnalysis | null;
+  cmeBulletin: KnowledgeCmeBulletin | null;
   metadata: {
     sourceName: string | null;
     generatedAt: string | null;

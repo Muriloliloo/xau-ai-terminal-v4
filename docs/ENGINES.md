@@ -278,3 +278,11 @@ Options Loader
 ```
 
 O Alert Engine é aplicado pelo router e não recalcula GEX ou OI.
+
+## CME Bulletin gate
+
+O `CmeBulletinValidator` executa antes dos engines. Para o boletim Section 64,
+o arquivo de referência é classificado como `open_interest_only`: o Open
+Interest Engine pode executar, enquanto Gamma/GEX, Volatility e análises que
+exijam spot ou Gamma permanecem bloqueados. O `CmeBulletinProvider` mantém
+`null` para campos ausentes e não altera fórmulas ou engines protegidos.

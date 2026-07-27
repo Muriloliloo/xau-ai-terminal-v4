@@ -11,6 +11,14 @@
 O projeto segue a configuração oficial atual: Tailwind via
 `@tailwindcss/postcss` e `@import "tailwindcss"`.
 
+## CME Daily Bulletin
+
+O painel Sistema oferece importação manual do PDF CME Section 64 em duas
+etapas (preview e confirmação). A interface identifica `CME EOD`, fechamento
+diário, fonte manual, elegibilidade e campos ausentes. Após a confirmação,
+somente componentes compatíveis com os dados são atualizados; Gamma/GEX e spot
+continuam indisponíveis quando o boletim não os fornece.
+
 ## Rotas
 
 | Rota | Função |
@@ -24,6 +32,7 @@ O projeto segue a configuração oficial atual: Tailwind via
 | `/snapshots/[id]` | Dashboard reconstruído do snapshot salvo |
 | `/settings` | Capacidades retornadas pela API |
 | `/system` | saúde, providers, cache, fallback e importação manual |
+| `/roadmap` | evolução declarativa Foundation, V5 e V6 |
 
 ## Design system
 
@@ -64,6 +73,9 @@ Tokens estão definidos em `app/globals.css` com `@theme`.
 - `AlertCard` e `AlertPanel`: severidade, horário e estado dos alertas;
 - `DashboardSkeleton` e `ErrorState`: loading, falha e retry.
 - `SnapshotsWorkspace`: listagem cronológica, seleção e comparação.
+- `RoadmapWorkspace`: missão, pilares, timeline e limitações do produto.
+- `RoadmapPhase`, `RoadmapProgress`, `RoadmapMilestone` e
+  `RoadmapDependency`: composição tipada e reutilizável do roadmap.
 
 ## Composição do dashboard
 
@@ -194,5 +206,7 @@ npm run build
 
 O quality gate cobre providers, fallback, regras do Market Summary, Replay,
 comparação, formatação pt-BR, persistência validada, erros seguros e contratos
-responsivos. A Academy carrega conteúdo e overlays sob demanda, reduzindo o
-JavaScript compartilhado pelas rotas que não usam o módulo educacional.
+responsivos. Também valida status, progresso, dependências, rota, navegação,
+pesquisa, campos opcionais e semântica do Product Roadmap. A Academy carrega
+conteúdo e overlays sob demanda, reduzindo o JavaScript compartilhado pelas
+rotas que não usam o módulo educacional.

@@ -2,6 +2,10 @@ import { API_BASE_URL } from "@/lib/constants";
 import { safeErrorMessage } from "@/lib/errors";
 import type {
   AnalysisResponse,
+  CmeBulletinConfirmResponse,
+  CmeBulletinLatestResponse,
+  CmeBulletinPreview,
+  CmeBulletinStatusResponse,
   GammaExposureAnalysis,
   HealthResponse,
   HistoryRecord,
@@ -124,6 +128,42 @@ export function importManualOptions(
     `/market/options/import?confirm=${confirm}`,
     { method: "POST", body },
   );
+}
+
+export function previewCmeBulletin(
+  file: File,
+): Promise<CmeBulletinPreview> {
+  const body = new FormData();
+  body.append("file", file);
+  return apiRequest<CmeBulletinPreview>("/market/cme-bulletin/preview", {
+    method: "POST",
+    body,
+  });
+}
+
+export function confirmCmeBulletin(
+  previewId: string,
+  allowReprocess = false,
+): Promise<CmeBulletinConfirmResponse> {
+  return apiRequest<CmeBulletinConfirmResponse>(
+    "/market/cme-bulletin/confirm",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        preview_id: previewId,
+        allow_reprocess: allowReprocess,
+      }),
+    },
+  );
+}
+
+export function getCmeBulletinStatus(): Promise<CmeBulletinStatusResponse> {
+  return apiRequest<CmeBulletinStatusResponse>("/market/cme-bulletin/status");
+}
+
+export function getLatestCmeBulletin(): Promise<CmeBulletinLatestResponse> {
+  return apiRequest<CmeBulletinLatestResponse>("/market/cme-bulletin/latest");
 }
 
 export function getSnapshots(): Promise<SnapshotSummary[]> {

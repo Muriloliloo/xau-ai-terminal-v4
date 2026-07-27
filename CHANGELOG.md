@@ -7,6 +7,39 @@ Alpha e não adota releases estáveis.
 
 ## [Unreleased]
 
+### Sprint 12 — CME Daily Bulletin Importer
+
+- adicionado fluxo manual `preview -> confirm` para PDFs locais da CME Section
+  64, com SHA-256, TTL, limite de páginas/tamanho, sanitização e deduplicação;
+- parser textual coordenado extrai blocos de ouro `OG/OG1/OG2/OG4/OG5 CALL/PUT`,
+  settlement, volume, Open Interest, mudança de OI, Delta e rastreabilidade por
+  página/linha, preservando campos ausentes como `null`;
+- criado `CmeBulletinProvider` com metadata `end_of_day`/manual, persistência
+  auditável e gate que limita o boletim de referência a `open_interest_only`;
+- adicionados endpoints `/api/market/cme-bulletin/{preview,confirm,status,latest}`
+  e testes com PDF real, fixtures mínimas, corrupção, limites, duplicidade,
+  alinhamento de spot e compatibilidade de snapshots;
+- nenhum scraping/download automático foi implementado; Gamma, Dealer, Open
+  Interest, Snapshot Engines e fórmulas protegidas permanecem inalterados.
+
+### Product Roadmap — V5 e V6
+
+- criado `docs/PRODUCT_ROADMAP.md` com missão, visão, sete pilares, fases,
+  dependências, entregas, critérios, riscos e limitações;
+- criada a rota `/roadmap` com timeline institucional, progresso declarativo e
+  status acessíveis em desktop, tablet e mobile;
+- adicionados tipos e fonte central de dados do roadmap, sem datas ou
+  funcionalidades futuras codificadas como existentes;
+- Foundation V4 foi separada da validação operacional de Alpha Vantage com
+  chave real e dos deploys Vercel/Render;
+- Option Chain automática, tempo real garantido e capacidades futuras
+  permanecem explicitamente indisponíveis ou planejadas;
+- Sidebar e pesquisa global passaram a oferecer acesso ao Roadmap;
+- adicionados testes de schema, status, progresso, dependências, rota,
+  navegação, campos opcionais, responsividade e acessibilidade;
+- nenhuma API, provider, engine protegido ou cálculo institucional foi
+  modificado.
+
 ### Sprint 11 — Real Data Foundation
 
 - criada camada backend de providers com contratos normalizados, registry,

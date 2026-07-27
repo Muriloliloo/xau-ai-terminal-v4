@@ -1,4 +1,9 @@
 import { getSnapshot, getSnapshots } from "@/lib/api";
+import {
+  cmeOpenInterestForChart,
+  readCmeBulletinSession,
+  type CmeBulletinDashboardData,
+} from "@/lib/cmeBulletin";
 import { generateMarketSummary } from "@/lib/marketSummary";
 import { getOptionDataProvider } from "@/lib/providers/providerFactory";
 import { sortSnapshotsChronologically } from "@/lib/replay";
@@ -50,6 +55,7 @@ export function buildKnowledgeContext(
     gex: analysis.gamma_exposure_analysis ?? null,
     gamma: analysis.gamma_summary ?? null,
     volatility: analysis.volatility_analysis ?? null,
+    cmeBulletin: null,
     metadata: {
       sourceName:
         analysis.data_metadata?.source ?? (analysis.source_name || null),
@@ -70,6 +76,59 @@ export function buildKnowledgeContext(
   };
 }
 
+function buildCmeKnowledgeContext(
+  bulletin: CmeBulletinDashboardData,
+): KnowledgeContext {
+  return {
+    dealerReport: null,
+    replay: [],
+    heatmap: [],
+    analytics: {
+      confidence: null,
+      risk: null,
+      volatility: null,
+      decision: null,
+      institutionalScore: null,
+      alerts: [],
+      callWall: null,
+      putWall: null,
+      gammaFlip: null,
+      gammaMagnet: null,
+    },
+    aiSummary: null,
+    openInterest: cmeOpenInterestForChart(bulletin),
+    gex: null,
+    gamma: null,
+    volatility: null,
+    cmeBulletin: {
+      bulletinDate: bulletin.metadata.bulletin_date,
+      importedAt: bulletin.imported_at,
+      contractCount: bulletin.contract_count,
+      callsFound: bulletin.report.calls_found,
+      putsFound: bulletin.report.puts_found,
+      expirationCount: bulletin.report.expirations_found.length,
+      contractsWithOpenInterest:
+        bulletin.eligibility.contracts_with_open_interest,
+      contractsWithVolume: bulletin.eligibility.contracts_with_volume,
+      eligibility: bulletin.eligibility.status,
+    },
+    metadata: {
+      sourceName: bulletin.metadata.source,
+      generatedAt: bulletin.imported_at,
+      snapshotId: null,
+      provider: bulletin.metadata.provider,
+      freshnessType: bulletin.metadata.freshness_type,
+      marketTimestamp: bulletin.metadata.market_timestamp,
+      delayMinutes: null,
+      isDemo: false,
+      isManual: true,
+      fallbackUsed: false,
+      warnings: bulletin.metadata.warnings,
+      missingFields: bulletin.metadata.missing_fields,
+    },
+  };
+}
+
 async function snapshotsOrEmpty(): Promise<SnapshotSummary[]> {
   try {
     return await getSnapshots();
@@ -79,6 +138,9 @@ async function snapshotsOrEmpty(): Promise<SnapshotSummary[]> {
 }
 
 export async function loadCopilotKnowledge(): Promise<KnowledgeContext> {
+  const cme = readCmeBulletinSession();
+  if (cme) return buildCmeKnowledgeContext(cme);
+
   const snapshots = await snapshotsOrEmpty();
   const latest = sortSnapshotsChronologically(snapshots).at(-1);
 
@@ -97,6 +159,9 @@ export async function loadCopilotKnowledge(): Promise<KnowledgeContext> {
 }
 
 export async function refreshCopilotKnowledge(): Promise<KnowledgeContext> {
+  const cme = readCmeBulletinSession();
+  if (cme) return buildCmeKnowledgeContext(cme);
+
   const analysis = await optionDataProvider.refresh();
   const snapshots = await snapshotsOrEmpty();
   return buildKnowledgeContext(analysis, snapshots);

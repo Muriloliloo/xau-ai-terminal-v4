@@ -81,9 +81,18 @@ curl -F "file=@options.csv" \
 A confirmação deve ser explícita. A resposta carrega relatório, metadata e a
 análise institucional quando importada.
 
+## CME Daily Bulletin (Section 64)
+
+O fluxo CME é separado da importação CSV: em **Sistema**, selecione
+`CME Daily Bulletin`, execute a prévia e confirme somente após revisar a
+validação. Aceitamos exclusivamente um PDF local fornecido manualmente. O
+provider é marcado `freshness_type=end_of_day` e `is_manual=true`; não há
+scraping, download automático ou atualização intradiária. A confirmação guarda
+hash, metadata e contratos normalizados, sem armazenar o PDF integral. Consulte
+[CME_BULLETIN_IMPORT.md](CME_BULLETIN_IMPORT.md) para os limites e endpoints.
+
 ## Uso legal
 
 Importe somente arquivos que você está autorizado a usar. Não há scraping de
 Cboe Delayed Quotes nem download automatizado de páginas com restrições de
 automação.
-
