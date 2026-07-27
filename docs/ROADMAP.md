@@ -72,3 +72,8 @@ Itens que atravessam várias versões:
 
 Decisões de produto, fases e critérios detalhados devem ser atualizados somente
 em [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md) e no modelo declarativo do frontend.
+# Sprint 13 concluída
+
+- Ativação CME EOD com separação Spot versus Institucional.
+- Métricas reais de OI/Volume, modos persistidos e snapshots CME.
+- Próximos passos: comparação CME por vencimento mais rica e provider licenciado com Gamma/IV explícitos.

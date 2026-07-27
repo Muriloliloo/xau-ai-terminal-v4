@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
@@ -16,9 +17,12 @@ from backend.schemas.cme_bulletin import (
 from backend.services.cme_bulletin_parser import CmeBulletinParseError
 from backend.services.cme_bulletin_service import (
     CmeDuplicateImportError,
+    CmePreviewBusyError,
     CmePreviewNotFoundError,
     get_cme_bulletin_service,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/market/cme-bulletin", tags=["cme-bulletin"])
 
@@ -40,9 +44,23 @@ def preview_cme_bulletin(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Não foi possível ler o arquivo PDF enviado.",
         ) from error
+    logger.info("cme_preview_upload_received bytes=%s", len(content))
     try:
         return service.preview(content, filename=file.filename)
+    except CmePreviewBusyError as error:
+        logger.warning("cme_preview_rejected error_type=%s", type(error).__name__)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=str(error),
+        ) from error
+    except MemoryError as error:
+        logger.exception("cme_preview_failed error_type=%s", type(error).__name__)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="O preview excedeu a memória disponível. Tente novamente.",
+        ) from error
     except CmeBulletinParseError as error:
+        logger.warning("cme_preview_rejected error_type=%s", type(error).__name__)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(error),

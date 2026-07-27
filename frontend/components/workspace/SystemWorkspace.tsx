@@ -7,11 +7,17 @@ import { StatusBadge } from "@/components/cards/StatusBadge";
 import { Header } from "@/components/layout/Header";
 import { CmeBulletinImport } from "@/components/workspace/CmeBulletinImport";
 import { ManualOptionsImport } from "@/components/workspace/ManualOptionsImport";
-import { getHealth, getProvidersStatus } from "@/lib/api";
+import {
+  getHealth,
+  getInstitutionalStatus,
+  getProvidersStatus,
+  setInstitutionalMode,
+} from "@/lib/api";
 import { formatTimestamp, UNAVAILABLE_LABEL } from "@/lib/formatters";
 import { getOptionDataProvider } from "@/lib/providers/providerFactory";
 import { useRemoteResource } from "@/lib/useRemoteResource";
 import type { ProviderMetadata } from "@/lib/providers/interfaceProvider";
+import type { InstitutionalDataMode } from "@/types";
 
 const provider = getOptionDataProvider();
 
@@ -50,12 +56,25 @@ export function SystemWorkspace() {
     loading: providerLoading,
     reload: reloadProviders,
   } = useRemoteResource(getProvidersStatus);
+  const {
+    data: institutionalState,
+    error: institutionalError,
+    loading: institutionalLoading,
+    reload: reloadInstitutional,
+  } = useRemoteResource(getInstitutionalStatus);
   const [metadata, setMetadata] = useState(readProviderMetadata);
 
   const refreshPanel = useCallback(async () => {
-    await Promise.all([reload(), reloadProviders()]);
+    await Promise.all([reload(), reloadProviders(), reloadInstitutional()]);
     setMetadata(readProviderMetadata());
-  }, [reload, reloadProviders]);
+  }, [reload, reloadProviders, reloadInstitutional]);
+
+  async function changeInstitutionalMode(mode: InstitutionalDataMode) {
+    if (mode === "demo" && !window.confirm("Ativar demonstração com sample_options.csv?")) return;
+    await setInstitutionalMode(mode);
+    await reloadInstitutional();
+    window.dispatchEvent(new Event("xau:cme-bulletin-updated"));
+  }
 
   const providerTone =
     metadata.status === "ready"
@@ -131,6 +150,34 @@ export function SystemWorkspace() {
             label="Disponibilidade"
             value={error ? "Offline" : health ? "Online" : "Pendente"}
           />
+        </div>
+      </section>
+
+      <section className="workspace-fade mt-3 overflow-hidden rounded-lg border border-terminal-border bg-terminal-card">
+        <CardHeader
+          title="Fonte institucional ativa"
+          description="O modo é persistido no backend. Spot, opções institucionais e dados demonstrativos permanecem separados."
+        />
+        <div className="space-y-3 p-4">
+          {institutionalState ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <SystemValue label="Modo" value={institutionalState.data_mode} />
+              <SystemValue label="Provider" value={institutionalState.provider ?? UNAVAILABLE_LABEL} />
+              <SystemValue label="Data do boletim" value={institutionalState.market_date ?? UNAVAILABLE_LABEL} />
+              <SystemValue label="Elegibilidade" value={institutionalState.eligibility ?? UNAVAILABLE_LABEL} />
+              <SystemValue label="Contratos" value={institutionalState.contract_count} />
+              <SystemValue label="OI total" value={institutionalState.open_interest_total ?? UNAVAILABLE_LABEL} />
+              <SystemValue label="Fallback demo" value={institutionalState.fallback_active ? "Ativo e explícito" : "Não utilizado"} />
+              <SystemValue label="Gamma" value={institutionalState.unavailable_metrics.includes("gamma") ? "Indisponível" : "Disponível"} />
+            </div>
+          ) : (
+            <p className="text-xs text-terminal-muted">{institutionalError ?? (institutionalLoading ? "Verificando…" : UNAVAILABLE_LABEL)}</p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => void changeInstitutionalMode("real_eod")} disabled={!institutionalState?.cme_import_id} className="rounded-md border border-terminal-positive/40 bg-terminal-positive/10 px-3 py-2 text-xs font-semibold text-terminal-positive disabled:opacity-40">Usar última importação CME</button>
+            <button type="button" onClick={() => void changeInstitutionalMode("auto")} className="rounded-md border border-terminal-accent/40 bg-terminal-accent/10 px-3 py-2 text-xs font-semibold text-terminal-accent">Modo automático</button>
+            <button type="button" onClick={() => void changeInstitutionalMode("demo")} className="rounded-md border border-terminal-flip/40 bg-terminal-flip/10 px-3 py-2 text-xs font-semibold text-terminal-flip">Voltar para modo demonstração</button>
+          </div>
         </div>
       </section>
 

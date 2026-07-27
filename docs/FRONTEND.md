@@ -210,3 +210,6 @@ responsivos. Também valida status, progresso, dependências, rota, navegação,
 pesquisa, campos opcionais e semântica do Product Roadmap. A Academy carrega
 conteúdo e overlays sob demanda, reduzindo o JavaScript compartilhado pelas
 rotas que não usam o módulo educacional.
+# Sprint 13 no frontend
+
+Dashboard, Analytics, mapa e Copilot consultam `InstitutionalDataState`. Em CME EOD o mapa muda para Open Interest por strike e painéis Gamma/GEX exibem indisponibilidade explícita. Sistema permite alternar o modo persistido, e Snapshots/Replay usam a trilha CME dedicada.

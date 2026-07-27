@@ -1,4 +1,9 @@
-import { getSnapshot, getSnapshots } from "@/lib/api";
+import {
+  getInstitutionalLatest,
+  getInstitutionalStatus,
+  getSnapshot,
+  getSnapshots,
+} from "@/lib/api";
 import {
   cmeOpenInterestForChart,
   readCmeBulletinSession,
@@ -78,7 +83,9 @@ export function buildKnowledgeContext(
 
 function buildCmeKnowledgeContext(
   bulletin: CmeBulletinDashboardData,
+  state?: import("@/types").InstitutionalDataState | null,
 ): KnowledgeContext {
+  const oi = bulletin.open_interest_analysis;
   return {
     dealerReport: null,
     replay: [],
@@ -111,6 +118,16 @@ function buildCmeKnowledgeContext(
         bulletin.eligibility.contracts_with_open_interest,
       contractsWithVolume: bulletin.eligibility.contracts_with_volume,
       eligibility: bulletin.eligibility.status,
+      putCallOiRatio: finiteOrNull(oi?.put_call_oi_ratio),
+      volumeTotal: finiteOrNull(oi?.volume_total),
+      callVolumeTotal: finiteOrNull(oi?.call_volume_total),
+      putVolumeTotal: finiteOrNull(oi?.put_volume_total),
+      putCallVolumeRatio: finiteOrNull(oi?.put_call_volume_ratio),
+      dominantCallStrike: finiteOrNull(oi?.largest_call_oi_strike),
+      dominantPutStrike: finiteOrNull(oi?.largest_put_oi_strike),
+      oiChange: finiteOrNull(oi?.net_oi_change),
+      spotProvider: state?.spot_provider ?? null,
+      spotTimestamp: state?.spot_timestamp ?? null,
     },
     metadata: {
       sourceName: bulletin.metadata.source,
@@ -129,6 +146,21 @@ function buildCmeKnowledgeContext(
   };
 }
 
+async function loadCmeFromBackend(): Promise<KnowledgeContext | null> {
+  try {
+    const state = await getInstitutionalStatus();
+    if (state.data_mode !== "real_eod") return null;
+    const latest = await getInstitutionalLatest();
+    if (!latest.latest) return null;
+    return buildCmeKnowledgeContext(
+      { ...latest.latest, contracts: [] },
+      state,
+    );
+  } catch {
+    return null;
+  }
+}
+
 async function snapshotsOrEmpty(): Promise<SnapshotSummary[]> {
   try {
     return await getSnapshots();
@@ -138,6 +170,8 @@ async function snapshotsOrEmpty(): Promise<SnapshotSummary[]> {
 }
 
 export async function loadCopilotKnowledge(): Promise<KnowledgeContext> {
+  const backendCme = await loadCmeFromBackend();
+  if (backendCme) return backendCme;
   const cme = readCmeBulletinSession();
   if (cme) return buildCmeKnowledgeContext(cme);
 
@@ -159,6 +193,8 @@ export async function loadCopilotKnowledge(): Promise<KnowledgeContext> {
 }
 
 export async function refreshCopilotKnowledge(): Promise<KnowledgeContext> {
+  const backendCme = await loadCmeFromBackend();
+  if (backendCme) return backendCme;
   const cme = readCmeBulletinSession();
   if (cme) return buildCmeKnowledgeContext(cme);
 

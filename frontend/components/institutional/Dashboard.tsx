@@ -21,13 +21,15 @@ import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
 import {
   createSnapshot,
   getHealth,
+  getInstitutionalLatest,
+  getInstitutionalStatus,
   getMarketSpot,
   getSnapshot,
 } from "@/lib/api";
 import { buildMarketAlerts, findDominantStrike } from "@/lib/alerts";
 import {
   CME_BULLETIN_UPDATED_EVENT,
-  readCmeBulletinSession,
+  compactCmeBulletin,
   type CmeBulletinDashboardData,
 } from "@/lib/cmeBulletin";
 import {
@@ -51,22 +53,37 @@ interface DashboardData {
   cme: CmeBulletinDashboardData | null;
   health: HealthResponse;
   spot: MarketSpotResponse | null;
+  institutionalState?: import("@/types").InstitutionalDataState | null;
 }
 
 const optionDataProvider = getOptionDataProvider();
 
 async function loadDashboard(): Promise<DashboardData> {
-  const cme = readCmeBulletinSession();
-  if (cme) {
-    const health = await getHealth();
-    return { analysis: null, cme, health, spot: null };
-  }
-  const [health, analysis, spot] = await Promise.all([
+  const [health, institutionalState] = await Promise.all([
     getHealth(),
+    getInstitutionalStatus(),
+  ]);
+  if (institutionalState.data_mode === "real_eod") {
+    const [latest, spot] = await Promise.all([
+      getInstitutionalLatest(),
+      getMarketSpot(),
+    ]);
+    if (latest.latest) {
+      return {
+        analysis: null,
+        cme: compactCmeBulletin(latest.latest),
+        health,
+        spot,
+        institutionalState,
+      };
+    }
+    return { analysis: null, cme: null, health, spot, institutionalState };
+  }
+  const [analysis, spot] = await Promise.all([
     optionDataProvider.load(),
     getMarketSpot(),
   ]);
-  return { analysis, cme: null, health, spot };
+  return { analysis, cme: null, health, spot, institutionalState };
 }
 
 export function Dashboard({ snapshotId }: { snapshotId?: number }) {
@@ -76,7 +93,7 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
       getHealth(),
       getSnapshot(snapshotId),
     ]);
-    return { analysis: snapshot.analysis, cme: null, health, spot: null };
+    return { analysis: snapshot.analysis, cme: null, health, spot: null, institutionalState: null };
   }, [snapshotId]);
   const { data: resource, error, loading, reload } = useRemoteResource(loader);
   const { preferences } = useWorkspace();
@@ -154,6 +171,8 @@ export function Dashboard({ snapshotId }: { snapshotId?: number }) {
         loading={loading}
         onRefresh={() => void reload()}
         onCleared={() => void reload()}
+        spot={resource.spot}
+        institutionalState={resource.institutionalState ?? null}
       />
     );
   }

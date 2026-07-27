@@ -81,6 +81,47 @@ CREATE INDEX IF NOT EXISTS idx_cme_bulletin_imports_date
 ON cme_bulletin_imports(bulletin_date DESC, imported_at DESC)
 """
 
+CREATE_INSTITUTIONAL_STATE_SQL = """
+CREATE TABLE IF NOT EXISTS institutional_data_state (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    mode TEXT NOT NULL DEFAULT 'auto',
+    updated_at TEXT NOT NULL DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now'))
+)
+"""
+
+CREATE_CME_INSTITUTIONAL_SNAPSHOTS_SQL = """
+CREATE TABLE IF NOT EXISTS cme_institutional_snapshots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    cme_import_id INTEGER NOT NULL,
+    provider TEXT NOT NULL,
+    source TEXT NOT NULL,
+    freshness_type TEXT NOT NULL,
+    bulletin_date TEXT,
+    file_hash TEXT NOT NULL,
+    contract_count INTEGER NOT NULL,
+    call_count INTEGER NOT NULL,
+    put_count INTEGER NOT NULL,
+    open_interest_total REAL,
+    call_open_interest REAL,
+    put_open_interest REAL,
+    volume_total REAL,
+    eligibility TEXT NOT NULL,
+    spot_provider TEXT,
+    spot_timestamp TEXT,
+    spot_alignment_json TEXT,
+    available_metrics_json TEXT NOT NULL,
+    unavailable_metrics_json TEXT NOT NULL,
+    warnings_json TEXT NOT NULL,
+    analysis_json TEXT NOT NULL
+)
+"""
+
+CREATE_CME_INSTITUTIONAL_SNAPSHOTS_INDEX_SQL = """
+CREATE INDEX IF NOT EXISTS idx_cme_institutional_snapshots_created
+ON cme_institutional_snapshots(created_at DESC, id DESC)
+"""
+
 
 def get_connection(database_path: str | Path | None = None) -> sqlite3.Connection:
     path = Path(database_path) if database_path is not None else DATABASE_PATH
@@ -96,4 +137,10 @@ def initialize_database(database_path: str | Path | None = None) -> None:
         connection.execute(CREATE_CME_BULLETIN_IMPORTS_SQL)
         connection.execute(CREATE_CME_HASH_INDEX_SQL)
         connection.execute(CREATE_CME_DATE_INDEX_SQL)
+        connection.execute(CREATE_INSTITUTIONAL_STATE_SQL)
+        connection.execute(CREATE_CME_INSTITUTIONAL_SNAPSHOTS_SQL)
+        connection.execute(CREATE_CME_INSTITUTIONAL_SNAPSHOTS_INDEX_SQL)
+        connection.execute(
+            "INSERT OR IGNORE INTO institutional_data_state (id, mode) VALUES (1, 'auto')"
+        )
         connection.commit()

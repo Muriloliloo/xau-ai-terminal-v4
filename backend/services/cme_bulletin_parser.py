@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import logging
 import re
 import time
 from collections import Counter
@@ -16,6 +17,7 @@ from pydantic import ValidationError
 from backend.schemas.cme_bulletin import CmeBulletinContract
 
 CME_SOURCE = "CME Group Daily Information Bulletin — Section 64"
+logger = logging.getLogger(__name__)
 # Product labels in the bulletin have changed slightly between editions
 # (some include ``COMEX`` and some omit the descriptive suffix entirely).
 # Keep the code/type as the canonical identity and accept only explicitly
@@ -345,26 +347,9 @@ class CmeBulletinParser:
                     f"O PDF excede o limite de {self.max_pages} páginas."
                 )
 
-            page_rows: dict[int, list[_Row]] = {}
             failed_pages: list[int] = []
-            for page_number, page in enumerate(pdf.pages, start=1):
-                ensure_within_time_limit()
-                try:
-                    words = page.extract_words(
-                        x_tolerance=1,
-                        y_tolerance=2,
-                        keep_blank_chars=False,
-                    )
-                    page_rows[page_number] = _cluster_rows(words)
-                except Exception:
-                    failed_pages.append(page_number)
-
-            if not page_rows:
-                raise CmeBulletinParseError(
-                    "Não foi possível extrair texto de nenhuma página."
-                )
-
-            first_page_rows = page_rows.get(1, [])
+            first_page_rows: list[_Row] = []
+            pages_processed = 0
             bulletin_date = _parse_bulletin_date(first_page_rows)
             expirations = _expiration_map(first_page_rows)
             contracts: list[CmeBulletinContract] = []
@@ -376,90 +361,140 @@ class CmeBulletinParser:
             current_product: tuple[str, str, str] | None = None
             current_month: str | None = None
 
-            for page_number, rows in page_rows.items():
+            for page_number, page in enumerate(pdf.pages, start=1):
                 ensure_within_time_limit()
+                try:
+                    words = page.extract_words(
+                        x_tolerance=1,
+                        y_tolerance=2,
+                        keep_blank_chars=False,
+                    )
+                    rows = _cluster_rows(words)
+                    del words
+                except MemoryError as error:
+                    raise CmeBulletinParseError(
+                        "O processamento do PDF excedeu a memória disponível."
+                    ) from error
+                except Exception as error:
+                    logger.warning(
+                        "cme_parser_page_failed page=%s error_type=%s",
+                        page_number,
+                        type(error).__name__,
+                    )
+                    try:
+                        page.flush_cache()
+                        page.close()
+                    except Exception:
+                        pass
+                    failed_pages.append(page_number)
+                    continue
+
+                pages_processed += 1
+                if page_number == 1:
+                    first_page_rows = rows
+                    bulletin_date = _parse_bulletin_date(first_page_rows)
+                    expirations = _expiration_map(first_page_rows)
                 full_page_text = " ".join(row.text for row in rows)
                 if "GOLD" in full_page_text.upper():
                     gold_pages.add(page_number)
-                if "OPTIONS EOO'S AND BLOCKS" in full_page_text.upper():
-                    continue
-
-                for row in rows:
-                    matched_product = None
-                    for pattern in GOLD_PRODUCT_ALIASES:
-                        matched_product = pattern.fullmatch(row.text)
+                if "OPTIONS EOO'S AND BLOCKS" not in full_page_text.upper():
+                    for row in rows:
+                        matched_product = None
+                        for pattern in GOLD_PRODUCT_ALIASES:
+                            matched_product = pattern.fullmatch(row.text)
+                            if matched_product:
+                                break
                         if matched_product:
-                            break
-                    if matched_product:
-                        candidate = (
-                            matched_product.group(1).upper(),
-                            matched_product.group(2).upper(),
-                            (
-                                matched_product.group(3)
-                                or "GOLD OPTIONS"
-                            ).upper(),
-                        )
+                            candidate = (
+                                matched_product.group(1).upper(),
+                                matched_product.group(2).upper(),
+                                (
+                                    matched_product.group(3)
+                                    or "GOLD OPTIONS"
+                                ).upper(),
+                            )
+                            if (
+                                current_product is None
+                                or candidate[:2] != current_product[:2]
+                            ):
+                                current_month = None
+                            current_product = candidate
+                            product_blocks.add(candidate[:2])
+                            continue
+
+                        if _is_generic_product_header(row):
+                            if "GOLD" in row.text.upper():
+                                ignored_lines += 1
+                            current_product = None
+                            current_month = None
+                            continue
+
+                        first = row.words[0]
+                        first_text = str(first["text"]).upper()
+                        if (
+                            float(first["x0"]) < 40
+                            and MONTH_PATTERN.fullmatch(first_text)
+                        ):
+                            current_month = first_text
+                            continue
+
                         if (
                             current_product is None
-                            or candidate[:2] != current_product[:2]
+                            or current_month is None
+                            or not 125 <= row.top <= 925
                         ):
-                            current_month = None
-                        current_product = candidate
-                        product_blocks.add(candidate[:2])
-                        continue
+                            continue
 
-                    if _is_generic_product_header(row):
-                        if "GOLD" in row.text.upper():
-                            ignored_lines += 1
-                        current_product = None
-                        current_month = None
-                        continue
-
-                    first = row.words[0]
-                    first_text = str(first["text"]).upper()
-                    if (
-                        float(first["x0"]) < 40
-                        and MONTH_PATTERN.fullmatch(first_text)
-                    ):
-                        current_month = first_text
-                        continue
-
-                    if (
-                        current_product is None
-                        or current_month is None
-                        or not 125 <= row.top <= 925
-                    ):
-                        continue
-
-                    expiration_labels.add(current_month)
-                    expiration = expirations.get(
-                        (
-                            current_product[0],
-                            current_product[1],
-                            current_month,
+                        expiration_labels.add(current_month)
+                        expiration = expirations.get(
+                            (
+                                current_product[0],
+                                current_product[1],
+                                current_month,
+                            )
                         )
+                        if expiration is None:
+                            unresolved_labels.add(current_month)
+                        contract = _parse_contract(
+                            row,
+                            page_number=page_number,
+                            product_code=current_product[0],
+                            option_type=current_product[1],
+                            product_name=current_product[2],
+                            contract_month=current_month,
+                            expiration=expiration,
+                            bulletin_date=bulletin_date,
+                        )
+                        if contract is None:
+                            if _number(first["text"]) is not None:
+                                ignored_lines += 1
+                            continue
+                        contracts.append(contract)
+                # pdfplumber caches page characters/objects. Release those
+                # caches immediately so the Render worker never accumulates
+                # all 67 pages while iterating.
+                page.flush_cache()
+                page.close()
+                del full_page_text, rows
+                if page_number == 1 or page_number % 10 == 0:
+                    logger.info(
+                        "cme_parser_progress page=%s pages_total=%s "
+                        "pages_processed=%s contracts=%s elapsed_seconds=%.2f",
+                        page_number,
+                        pages_total,
+                        pages_processed,
+                        len(contracts),
+                        time.monotonic() - started_at,
                     )
-                    if expiration is None:
-                        unresolved_labels.add(current_month)
-                    contract = _parse_contract(
-                        row,
-                        page_number=page_number,
-                        product_code=current_product[0],
-                        option_type=current_product[1],
-                        product_name=current_product[2],
-                        contract_month=current_month,
-                        expiration=expiration,
-                        bulletin_date=bulletin_date,
-                    )
-                    if contract is None:
-                        if _number(first["text"]) is not None:
-                            ignored_lines += 1
-                        continue
-                    contracts.append(contract)
+
+            if pages_processed == 0:
+                raise CmeBulletinParseError(
+                    "Não foi possível extrair texto de nenhuma página."
+                )
 
             return ParsedCmeBulletin(
                 pages_total=pages_total,
-                pages_processed=len(page_rows),
+                pages_processed=pages_processed,
                 bulletin_date=bulletin_date,
                 contracts=tuple(contracts),
                 gold_pages=tuple(sorted(gold_pages)),
@@ -473,6 +508,8 @@ class CmeBulletinParser:
             )
         finally:
             pdf.close()
+            if isinstance(source, bytes):
+                stream.close()
 
     @staticmethod
     def duplicate_count(

@@ -339,3 +339,10 @@ A base 3.0 Alpha introduziu:
 O README legado informa que a V2 existia como base separada e não foi alterada pela
 V3. O código e o histórico detalhado da V2 não fazem parte deste diretório, portanto
 mudanças adicionais não podem ser reconstruídas com segurança.
+# Sprint 13 — Real CME Data Activation
+
+- Adicionado estado institucional persistente e endpoints `/api/market/institutional/status`, `/latest`, `/mode` e `/activate`.
+- Dashboard, Analytics, mapa e Copilot reconhecem CME EOD e bloqueiam fallback demo silencioso.
+- Open Interest CME ganhou volume, ratios, distribuição por vencimento e variação de OI quando disponível.
+- Snapshots CME usam armazenamento dedicado, sem alterar o Snapshot Engine legado.
+- Spot Alpha Vantage permanece separado; Gamma/GEX/IV/Dealer ficam indisponíveis quando não existem no boletim.

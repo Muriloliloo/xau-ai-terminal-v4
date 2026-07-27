@@ -224,6 +224,30 @@ function buildOverview(
       `Cobertura: ${formatNumber(bulletin.contractsWithOpenInterest)} contratos com Open Interest e ${formatNumber(bulletin.contractsWithVolume)} com volume reportado.`,
       `Elegibilidade da análise: ${bulletin.eligibility}.`,
     );
+    if (finite(bulletin.putCallOiRatio)) {
+      facts.push(`Put/Call OI Ratio: ${formatNumber(bulletin.putCallOiRatio)}.`);
+    }
+    if (finite(bulletin.volumeTotal)) {
+      facts.push(`Volume reportado: ${formatNumber(bulletin.volumeTotal)} contratos.`);
+    }
+    if (finite(bulletin.callVolumeTotal) || finite(bulletin.putVolumeTotal)) {
+      facts.push(
+        `Volume por lado: Calls ${formatNumber(bulletin.callVolumeTotal)}, Puts ${formatNumber(bulletin.putVolumeTotal)}.`,
+      );
+    }
+    if (finite(bulletin.dominantCallStrike) || finite(bulletin.dominantPutStrike)) {
+      facts.push(
+        `Strikes dominantes por OI: Call ${formatNumber(bulletin.dominantCallStrike)}, Put ${formatNumber(bulletin.dominantPutStrike)}.`,
+      );
+    }
+    if (finite(bulletin.oiChange)) {
+      facts.push(`Variação líquida de OI reportada: ${formatNumber(bulletin.oiChange)}.`);
+    }
+    if (present(bulletin.spotProvider)) {
+      facts.push(
+        `Spot é uma fonte separada (${bulletin.spotProvider}); ele não foi combinado com Gamma ou GEX.`,
+      );
+    }
     sections.push({ title: "Boletim CME", content: facts });
     addCitation(citations, citation("CME Bulletin", context));
     return;
@@ -612,6 +636,23 @@ export function generateKnowledgeAnswer(
   const intents = detectIntents(question);
   const sections: CopilotAnswerSection[] = [];
   const citations: KnowledgeCitation[] = [];
+
+  if (context.cmeBulletin && normalize(question).includes("gamma")) {
+    return {
+      status: "insufficient",
+      summary: INSUFFICIENT_DATA,
+      sections: [
+        {
+          title: "Limitação da fonte",
+          content: [
+            "O CME Daily Bulletin importado não fornece Gamma por contrato; Gamma, GEX, Gamma Flip e Dealer Bias baseado em Gamma permanecem indisponíveis.",
+          ],
+        },
+      ],
+      citations: [citation("CME Bulletin", context)],
+      generatedAt: new Date().toISOString(),
+    };
+  }
 
   intents.forEach((intent) => BUILDERS[intent](context, sections, citations));
 

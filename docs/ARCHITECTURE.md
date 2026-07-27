@@ -298,3 +298,6 @@ relatório e contratos rastreáveis por página/linha. O provider é
 `end_of_day`/manual e não altera a Provider Factory ou os engines protegidos.
 O repositório usa a tabela SQLite `cme_bulletin_imports` para hash, relatório,
 metadata, alinhamento e contratos normalizados; o PDF bruto não é persistido.
+# Sprint 13 — fronteira de dados institucionais
+
+`institutional_data_service` resolve a fonte ativa e expõe `InstitutionalDataState`. O CME possui endpoints e snapshots próprios (`/api/market/institutional/*`) porque o schema legado de `institutional_snapshots` exige campos Gamma não presentes no boletim. Essa separação mantém compatibilidade dos contratos antigos e impede que um snapshot CME seja preenchido com métricas demo.

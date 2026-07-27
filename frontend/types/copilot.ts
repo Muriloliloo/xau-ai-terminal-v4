@@ -76,6 +76,16 @@ export interface KnowledgeCmeBulletin {
   contractsWithOpenInterest: number;
   contractsWithVolume: number;
   eligibility: string;
+  putCallOiRatio: number | null;
+  volumeTotal: number | null;
+  callVolumeTotal: number | null;
+  putVolumeTotal: number | null;
+  putCallVolumeRatio: number | null;
+  dominantCallStrike: number | null;
+  dominantPutStrike: number | null;
+  oiChange: number | null;
+  spotProvider: string | null;
+  spotTimestamp: string | null;
 }
 
 export interface KnowledgeContext {

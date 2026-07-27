@@ -297,3 +297,6 @@ database/            banco SQLite
 
 Consulte `docs/ARCHITECTURE.md` e `docs/DATA_FLOW.md` antes de alterar contratos ou
 cálculos.
+# Dados CME reais
+
+Após confirmar um Daily Bulletin, o sistema pode usar a última importação como fonte institucional em modo `real_eod`. Consulte `GET /api/market/institutional/status` e `GET /api/market/institutional/latest`. O Dashboard separa Spot (Alpha Vantage) de Open Interest/Volume CME e não usa `sample_options.csv` para completar Gamma, GEX, IV ou Dealer. A seleção de modo é persistida por `POST /api/market/institutional/mode`.

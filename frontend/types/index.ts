@@ -44,6 +44,12 @@ export interface OpenInterestAnalysis {
   oi_concentration_score: number;
   top_10_strikes: OpenInterestStrike[];
   distribution_by_strike: OpenInterestStrike[];
+  put_call_oi_ratio?: number | null;
+  volume_total?: number | null;
+  call_volume_total?: number | null;
+  put_volume_total?: number | null;
+  put_call_volume_ratio?: number | null;
+  distribution_by_expiry?: CmeOpenInterestAnalysis["distribution_by_expiry"];
 }
 
 export interface DealerOpenInterestContext {
@@ -482,6 +488,24 @@ export interface CmeOpenInterestAnalysis {
   oi_concentration_score: number;
   top_10_strikes: OpenInterestStrike[];
   distribution_by_strike: OpenInterestStrike[];
+  put_call_oi_ratio?: number | null;
+  volume_total?: number | null;
+  call_volume_total?: number | null;
+  put_volume_total?: number | null;
+  put_call_volume_ratio?: number | null;
+  call_oi_change?: number | null;
+  put_oi_change?: number | null;
+  net_oi_change?: number | null;
+  contract_count?: number;
+  expiration_count?: number;
+  distribution_by_expiry?: Array<{
+    expiry: string | null;
+    call_oi: number;
+    put_oi: number;
+    total_oi: number;
+    volume: number;
+    contract_count: number;
+  }>;
 }
 
 export interface CmeBulletinPreview {
@@ -611,4 +635,80 @@ export interface SettingsResponse {
   history_mode: string;
   scheduler_enabled: boolean;
   realtime_data_enabled: boolean;
+}
+
+export type InstitutionalDataMode =
+  | "auto"
+  | "real_eod"
+  | "manual"
+  | "csv"
+  | "demo"
+  | "unavailable";
+
+export interface InstitutionalDataState {
+  provider: string | null;
+  source: string | null;
+  source_type: string | null;
+  freshness_type: FreshnessType;
+  market_date: string | null;
+  imported_at: string | null;
+  spot_provider: string | null;
+  spot_timestamp: string | null;
+  spot_price: number | null;
+  cme_import_id: number | null;
+  data_mode: InstitutionalDataMode;
+  fallback_active: boolean;
+  is_demo: boolean;
+  is_manual: boolean;
+  is_partial: boolean;
+  eligibility: string | null;
+  available_metrics: string[];
+  unavailable_metrics: string[];
+  warnings: string[];
+  missing_fields: string[];
+  contract_count: number;
+  calls: number;
+  puts: number;
+  open_interest_total: number | null;
+  volume_total: number | null;
+  spot_alignment: CmeSpotAlignment | null;
+}
+
+export interface InstitutionalLatestResponse {
+  state: InstitutionalDataState;
+  available: boolean;
+  latest: CmeBulletinImport | null;
+  open_interest: CmeOpenInterestAnalysis | null;
+}
+
+export interface CmeInstitutionalSnapshot {
+  id: number;
+  created_at: string;
+  cme_import_id: number;
+  provider: string;
+  source: string;
+  freshness_type: "end_of_day";
+  bulletin_date: string | null;
+  file_hash: string;
+  contract_count: number;
+  call_count: number;
+  put_count: number;
+  open_interest_total: number | null;
+  call_open_interest: number | null;
+  put_open_interest: number | null;
+  volume_total: number | null;
+  eligibility: string;
+  spot_provider: string | null;
+  spot_timestamp: string | null;
+  spot_alignment: CmeSpotAlignment | null;
+  available_metrics: string[];
+  unavailable_metrics: string[];
+  warnings: string[];
+  analysis: {
+    open_interest: CmeOpenInterestAnalysis | null;
+    metadata: CmeBulletinMetadata;
+    report: CmeValidationReport;
+    eligibility: CmeEligibilityReport;
+    contracts: CmeBulletinContract[];
+  };
 }

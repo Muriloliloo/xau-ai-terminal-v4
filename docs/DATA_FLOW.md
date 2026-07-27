@@ -283,3 +283,6 @@ concluídas pela API são gravadas em `institutional_snapshots`.
 | Cliente HTTP | transforma não-2xx em `ApiError` |
 | Next.js | apresenta loading, vazio, erro e retry |
 | Streamlit | mantém tratamento e logging existentes |
+# Fluxo Sprint 13
+
+PDF CME → preview → confirmação → `cme_bulletin_imports` → resolução de `InstitutionalDataState` → Dashboard/Analytics/Mapa OI/Copilot. Spot Alpha Vantage é uma ramificação separada. Gamma, GEX, IV e Dealer não são chamados no modo `real_eod` quando a elegibilidade é `open_interest_only`.

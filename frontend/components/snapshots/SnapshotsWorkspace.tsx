@@ -6,7 +6,13 @@ import { useState } from "react";
 import { ErrorState } from "@/components/layout/ErrorState";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { Header } from "@/components/layout/Header";
-import { deleteSnapshot, getSnapshot, getSnapshots } from "@/lib/api";
+import {
+  deleteSnapshot,
+  getCmeInstitutionalSnapshots,
+  getInstitutionalStatus,
+  getSnapshot,
+  getSnapshots,
+} from "@/lib/api";
 import {
   formatNumber,
   formatPercent,
@@ -15,7 +21,7 @@ import {
 } from "@/lib/formatters";
 import { safeErrorMessage } from "@/lib/errors";
 import { useRemoteResource } from "@/lib/useRemoteResource";
-import type { SnapshotDetail, SnapshotSummary } from "@/types";
+import type { CmeInstitutionalSnapshot, SnapshotDetail, SnapshotSummary } from "@/types";
 
 function signed(value: number) {
   return `${value > 0 ? "+" : ""}${formatNumber(value)}`;
@@ -33,10 +39,23 @@ function numericDelta(
 
 export function SnapshotsWorkspace() {
   const { data: snapshots, error, loading, reload } = useRemoteResource(getSnapshots);
+  const { data: institutionalState } = useRemoteResource(getInstitutionalStatus);
+  const { data: cmeSnapshots, reload: reloadCme } = useRemoteResource(getCmeInstitutionalSnapshots);
   const [selected, setSelected] = useState<number[]>([]);
   const [comparison, setComparison] = useState<SnapshotDetail[] | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [comparing, setComparing] = useState(false);
+  const [selectedCme, setSelectedCme] = useState<number[]>([]);
+
+  function toggleCme(id: number) {
+    setSelectedCme((current) => current.includes(id)
+      ? current.filter((item) => item !== id)
+      : current.length < 2 ? [...current, id] : current);
+  }
+
+  const cmeComparison = selectedCme.length === 2 && cmeSnapshots
+    ? selectedCme.map((id) => cmeSnapshots.find((item) => item.id === id)).filter(Boolean) as CmeInstitutionalSnapshot[]
+    : [];
 
   function toggle(snapshotId: number) {
     setComparison(null);
@@ -112,6 +131,29 @@ export function SnapshotsWorkspace() {
         <p className="mb-3 rounded-md border border-terminal-negative/40 bg-terminal-negative/5 px-3 py-2 text-xs text-terminal-negative">
           {actionError}
         </p>
+      ) : null}
+
+      {institutionalState?.data_mode === "real_eod" ? (
+        <section className="mb-3 overflow-hidden rounded-lg border border-terminal-border bg-terminal-card">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-terminal-border px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold">Snapshots CME EOD · Open Interest</p>
+              <p className="mt-1 text-xs text-terminal-muted">Registro separado do schema legado; Gamma e GEX não são comparados.</p>
+            </div>
+            <button type="button" onClick={() => void reloadCme()} className="rounded border border-terminal-accent/40 px-2 py-1 text-xs text-terminal-accent">Atualizar</button>
+          </div>
+          {!cmeSnapshots?.length ? (
+            <p className="p-4 text-xs text-terminal-muted">Nenhum snapshot CME salvo. Use “Salvar Snapshot” no Dashboard.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-left text-xs">
+                <thead className="bg-terminal-panel text-terminal-muted"><tr><th className="px-3 py-2">Comparar</th><th className="px-3 py-2">Data CME</th><th className="px-3 py-2">OI total</th><th className="px-3 py-2">Call OI</th><th className="px-3 py-2">Put OI</th><th className="px-3 py-2">Volume</th></tr></thead>
+                <tbody>{cmeSnapshots.map((item) => <tr key={item.id} className="border-t border-terminal-border/60"><td className="px-3 py-2"><input type="checkbox" checked={selectedCme.includes(item.id)} disabled={selectedCme.length === 2 && !selectedCme.includes(item.id)} onChange={() => toggleCme(item.id)} aria-label={`Selecionar snapshot CME ${item.id}`} /></td><td className="px-3 py-2">{item.bulletin_date ?? UNAVAILABLE_LABEL} · #{item.id}</td><td className="px-3 py-2 font-mono">{formatNumber(item.open_interest_total)}</td><td className="px-3 py-2 font-mono">{formatNumber(item.call_open_interest)}</td><td className="px-3 py-2 font-mono">{formatNumber(item.put_open_interest)}</td><td className="px-3 py-2 font-mono">{formatNumber(item.volume_total)}</td></tr>)}</tbody>
+              </table>
+            </div>
+          )}
+          {cmeComparison.length === 2 ? <p className="border-t border-terminal-border px-4 py-3 text-xs text-terminal-accent">OI total: {formatNumber(cmeComparison[0].open_interest_total)} → {formatNumber(cmeComparison[1].open_interest_total)} · Volume: {formatNumber(cmeComparison[0].volume_total)} → {formatNumber(cmeComparison[1].volume_total)}</p> : null}
+        </section>
       ) : null}
 
       {loading && snapshots === null ? (

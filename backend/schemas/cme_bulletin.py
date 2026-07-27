@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -147,6 +147,17 @@ class CmeOpenInterestAnalysis(BaseModel):
     oi_concentration_score: float = Field(ge=0)
     top_10_strikes: list[dict[str, float | int]]
     distribution_by_strike: list[dict[str, float | int]]
+    put_call_oi_ratio: float | None = Field(default=None, ge=0)
+    volume_total: float | None = Field(default=None, ge=0)
+    call_volume_total: float | None = Field(default=None, ge=0)
+    put_volume_total: float | None = Field(default=None, ge=0)
+    put_call_volume_ratio: float | None = Field(default=None, ge=0)
+    call_oi_change: float | None = None
+    put_oi_change: float | None = None
+    net_oi_change: float | None = None
+    contract_count: int = Field(default=0, ge=0)
+    expiration_count: int = Field(default=0, ge=0)
+    distribution_by_expiry: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class CmeBulletinPreview(BaseModel):

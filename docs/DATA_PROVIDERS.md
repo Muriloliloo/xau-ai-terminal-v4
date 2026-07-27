@@ -147,3 +147,6 @@ caminhos locais não são retornados.
 
 Um provider novo não deve exigir alterações em Gamma, Dealer, Snapshot, Open
 Interest ou nos componentes consumidores.
+# Ativação institucional CME (Sprint 13)
+
+O provider institucional ativo é resolvido separadamente do provider de spot. A ordem em modo automático é: última importação CME confirmada, manual/CSV autorizado e, apenas com `ALLOW_DEMO_FALLBACK=true`, demonstração explícita. O estado e a origem são visíveis em `/api/market/institutional/status`; não há combinação silenciosa entre Alpha Vantage, CME e `sample_options.csv`.

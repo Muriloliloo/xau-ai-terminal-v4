@@ -557,6 +557,46 @@ test("Knowledge Engine não inventa dados ausentes", () => {
   assert.deepEqual(unrelated.citations, []);
 });
 
+test("Knowledge Engine CME bloqueia Gamma e declara fechamento diário", () => {
+  const engine = loadTypeScript("lib/copilot/knowledgeEngine.ts");
+  const answer = engine.generateKnowledgeAnswer(
+    "Qual é o Gamma Flip?",
+    knowledgeFixture({
+      cmeBulletin: {
+        bulletinDate: "2026-07-24",
+        importedAt: "2026-07-27T18:00:00Z",
+        contractCount: 4397,
+        callsFound: 2242,
+        putsFound: 2155,
+        expirationCount: 12,
+        contractsWithOpenInterest: 4389,
+        contractsWithVolume: 4397,
+        eligibility: "open_interest_only",
+        putCallOiRatio: 0.52,
+        volumeTotal: 209924,
+        callVolumeTotal: 100000,
+        putVolumeTotal: 109924,
+        putCallVolumeRatio: 1.1,
+        dominantCallStrike: 4100,
+        dominantPutStrike: 3900,
+        oiChange: null,
+        spotProvider: "alpha_vantage",
+        spotTimestamp: null,
+      },
+      gex: null,
+      gamma: null,
+      aiSummary: null,
+      dealerReport: null,
+      heatmap: [],
+    }),
+  );
+
+  assert.equal(answer.status, "insufficient");
+  assert.equal(answer.summary, "Não há dados suficientes.");
+  assert.match(JSON.stringify(answer.sections), /não fornece Gamma/i);
+  assert.equal(answer.citations[0].indicator, "CME Bulletin");
+});
+
 test("Knowledge Engine responde insuficiente na ausência total de dados", () => {
   const engine = loadTypeScript("lib/copilot/knowledgeEngine.ts");
   const answer = engine.generateKnowledgeAnswer(

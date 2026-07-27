@@ -9,7 +9,7 @@ import { Header } from "@/components/layout/Header";
 import { ReplayComparison } from "@/components/replay/ReplayComparison";
 import { ReplaySnapshotList } from "@/components/replay/ReplaySnapshotList";
 import { ReplayTimeline } from "@/components/replay/ReplayTimeline";
-import { getSnapshots } from "@/lib/api";
+import { getCmeInstitutionalSnapshots, getInstitutionalStatus, getSnapshots } from "@/lib/api";
 import {
   formatReplayTime,
   replayRegime,
@@ -19,6 +19,8 @@ import { useRemoteResource } from "@/lib/useRemoteResource";
 
 export function MarketReplayWorkspace() {
   const { data, error, loading, reload } = useRemoteResource(getSnapshots);
+  const { data: institutionalState } = useRemoteResource(getInstitutionalStatus);
+  const { data: cmeSnapshots } = useRemoteResource(getCmeInstitutionalSnapshots);
   const [selectedIndexState, setSelectedIndex] = useState<number | null>(null);
   const snapshots = useMemo(
     () => sortSnapshotsChronologically(data ?? []),
@@ -32,6 +34,27 @@ export function MarketReplayWorkspace() {
 
   if (error) {
     return <ErrorState message={error} onRetry={() => void reload()} />;
+  }
+
+  if (institutionalState?.data_mode === "real_eod") {
+    return (
+      <>
+        <Header
+          eyebrow="CME EOD · Open Interest"
+          title="MARKET REPLAY"
+          description="Replay de importações CME confirmadas, sem criar Gamma ou GEX onde a fonte não fornece esses campos."
+          online={cmeSnapshots !== null}
+        />
+        {!cmeSnapshots?.length ? (
+          <EmptyState icon="▶" title="Nenhum snapshot CME disponível" description="Salve um snapshot no Dashboard CME para iniciar a timeline." />
+        ) : (
+          <section className="rounded-lg border border-terminal-border bg-terminal-card p-4">
+            <div className="flex items-center justify-between gap-2 border-b border-terminal-border pb-3"><p className="text-sm font-semibold">Timeline CME · Open Interest</p><span className="text-[10px] text-terminal-muted">Gamma indisponível</span></div>
+            <div className="mt-4 space-y-2">{[...cmeSnapshots].reverse().map((item) => <article key={item.id} className="rounded-md border border-terminal-border bg-terminal-panel p-3"><div className="flex flex-wrap justify-between gap-2 text-xs"><span className="font-mono text-terminal-accent">{item.bulletin_date ?? "Sem data"} · Snapshot CME #{item.id}</span><span className="text-terminal-muted">{item.freshness_type}</span></div><div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-terminal-muted sm:grid-cols-4"><span>OI {formatReplayMetric(item.open_interest_total)}</span><span>Calls {formatReplayMetric(item.call_open_interest)}</span><span>Puts {formatReplayMetric(item.put_open_interest)}</span><span>Volume {formatReplayMetric(item.volume_total)}</span></div></article>)}</div>
+          </section>
+        )}
+      </>
+    );
   }
 
   return (
@@ -110,4 +133,8 @@ export function MarketReplayWorkspace() {
       )}
     </>
   );
+}
+
+function formatReplayMetric(value: number | null): string {
+  return value == null ? "—" : new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(value);
 }

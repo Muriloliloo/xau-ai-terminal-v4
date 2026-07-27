@@ -6,6 +6,7 @@ import type {
   CmeBulletinLatestResponse,
   CmeBulletinPreview,
   CmeBulletinStatusResponse,
+  CmeInstitutionalSnapshot,
   GammaExposureAnalysis,
   HealthResponse,
   HistoryRecord,
@@ -18,6 +19,9 @@ import type {
   SnapshotSummary,
   VolatilityAnalysis,
   ProvidersResponse,
+  InstitutionalDataMode,
+  InstitutionalDataState,
+  InstitutionalLatestResponse,
 } from "@/types";
 
 export class ApiError extends Error {
@@ -164,6 +168,45 @@ export function getCmeBulletinStatus(): Promise<CmeBulletinStatusResponse> {
 
 export function getLatestCmeBulletin(): Promise<CmeBulletinLatestResponse> {
   return apiRequest<CmeBulletinLatestResponse>("/market/cme-bulletin/latest");
+}
+
+export function getInstitutionalStatus(): Promise<InstitutionalDataState> {
+  return apiRequest<InstitutionalDataState>("/market/institutional/status");
+}
+
+export function getInstitutionalLatest(): Promise<InstitutionalLatestResponse> {
+  return apiRequest<InstitutionalLatestResponse>("/market/institutional/latest");
+}
+
+export function setInstitutionalMode(
+  mode: InstitutionalDataMode,
+): Promise<{ updated: boolean; state: InstitutionalDataState }> {
+  return apiRequest<{ updated: boolean; state: InstitutionalDataState }>(
+    "/market/institutional/mode",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode }),
+    },
+  );
+}
+
+export function createCmeInstitutionalSnapshot(): Promise<CmeInstitutionalSnapshot> {
+  return apiRequest<CmeInstitutionalSnapshot>("/market/institutional/snapshots", {
+    method: "POST",
+  });
+}
+
+export function getCmeInstitutionalSnapshots(): Promise<CmeInstitutionalSnapshot[]> {
+  return apiRequest<CmeInstitutionalSnapshot[]>("/market/institutional/snapshots");
+}
+
+export function getCmeInstitutionalSnapshot(
+  snapshotId: number,
+): Promise<CmeInstitutionalSnapshot> {
+  return apiRequest<CmeInstitutionalSnapshot>(
+    `/market/institutional/snapshots/${snapshotId}`,
+  );
 }
 
 export function getSnapshots(): Promise<SnapshotSummary[]> {

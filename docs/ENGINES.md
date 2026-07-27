@@ -286,3 +286,6 @@ o arquivo de referência é classificado como `open_interest_only`: o Open
 Interest Engine pode executar, enquanto Gamma/GEX, Volatility e análises que
 exijam spot ou Gamma permanecem bloqueados. O `CmeBulletinProvider` mantém
 `null` para campos ausentes e não altera fórmulas ou engines protegidos.
+# Fonte CME e engines
+
+No modo `real_eod` a camada de ativação chama apenas o processamento de Open Interest compatível com os campos do Daily Bulletin. Gamma Engine, Gamma Exposure Engine, Dealer Engine e Volatility Engine não são executados para completar ausências. Os engines protegidos e suas fórmulas permanecem inalterados.

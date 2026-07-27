@@ -13,12 +13,15 @@ export type CmeBulletinDashboardData = Omit<
   contracts: [];
 };
 
+export function compactCmeBulletin(
+  result: CmeBulletinImport,
+): CmeBulletinDashboardData {
+  return { ...result, contracts: [] };
+}
+
 export function saveCmeBulletinSession(result: CmeBulletinImport): void {
   if (typeof window === "undefined") return;
-  const compact: CmeBulletinDashboardData = {
-    ...result,
-    contracts: [],
-  };
+  const compact = compactCmeBulletin(result);
   window.sessionStorage.setItem(
     CME_BULLETIN_SESSION_KEY,
     JSON.stringify(compact),
@@ -72,5 +75,11 @@ export function cmeOpenInterestForChart(
     oi_concentration_score: analysis.oi_concentration_score,
     top_10_strikes: analysis.top_10_strikes,
     distribution_by_strike: analysis.distribution_by_strike,
+    put_call_oi_ratio: analysis.put_call_oi_ratio,
+    volume_total: analysis.volume_total,
+    call_volume_total: analysis.call_volume_total,
+    put_volume_total: analysis.put_volume_total,
+    put_call_volume_ratio: analysis.put_call_volume_ratio,
+    distribution_by_expiry: analysis.distribution_by_expiry,
   };
 }

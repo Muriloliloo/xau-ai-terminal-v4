@@ -350,4 +350,7 @@ Uma fase só pode mudar para **Concluído** quando:
 - testes proporcionais ao risco estiverem aprovados;
 - não houver afirmação de tempo real sem garantia;
 - a entrega não prometer lucro, acerto ou previsão garantida.
+# Sprint 13 — ativação CME
+
+Entregue o primeiro caminho de dados reais de fechamento: CME Bulletin como fonte institucional, Alpha Vantage como spot separado, sem fallback silencioso e com transparência de limitações.
 

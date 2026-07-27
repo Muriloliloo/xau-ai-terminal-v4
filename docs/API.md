@@ -282,3 +282,9 @@ classificado como atrasado enquanto o plano não comprovar tempo real. Na análi
 `price` só é preenchido quando o arquivo manual contém um
 `underlying_price` único e válido; `price_change_percent` permanece `null`. O
 spot externo não é injetado automaticamente nos engines nem em snapshots.
+# Endpoints Sprint 13
+
+- `GET /api/market/institutional/status` — fonte ativa, freshness, elegibilidade, spot separado e métricas disponíveis/indisponíveis.
+- `GET /api/market/institutional/latest` — último CME confirmado e Open Interest real.
+- `POST /api/market/institutional/mode` ou `/activate` — seleção persistida (`auto`, `real_eod`, `manual`, `csv`, `demo`).
+- `POST/GET /api/market/institutional/snapshots` e `GET .../{id}` — snapshots CME parciais, armazenados fora do contrato legado.

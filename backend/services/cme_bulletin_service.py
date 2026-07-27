@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+import gzip
 import hashlib
+import json
+import logging
 import os
 import re
 import secrets
+import tempfile
 from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from threading import RLock
+from threading import Lock, RLock
 
 import pandas as pd
 
@@ -23,6 +27,7 @@ from backend.database.cme_bulletin_repository import (
 from backend.providers.cme_bulletin_provider import CmeBulletinProvider
 from backend.schemas.cme_bulletin import (
     CmeBulletinConfirmResponse,
+    CmeBulletinContract,
     CmeBulletinImport,
     CmeBulletinLatestResponse,
     CmeBulletinPreview,
@@ -39,6 +44,8 @@ from backend.services.cme_bulletin_validator import (
     CmeBulletinValidator,
     align_spot,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _positive_int(variable: str, default: int) -> int:
@@ -65,6 +72,10 @@ class CmePreviewNotFoundError(ValueError):
     pass
 
 
+class CmePreviewBusyError(RuntimeError):
+    pass
+
+
 class CmeDuplicateImportError(ValueError):
     def __init__(self, import_id: int) -> None:
         super().__init__(
@@ -77,7 +88,114 @@ class CmeDuplicateImportError(ValueError):
 @dataclass(frozen=True)
 class _PreviewEntry:
     preview: CmeBulletinPreview
-    parsed: ParsedCmeBulletin
+    parsed_path: Path
+
+
+def _remove_preview_file(path: Path) -> None:
+    try:
+        path.unlink(missing_ok=True)
+    except OSError:
+        logger.warning("cme_preview_temp_cleanup_failed")
+
+
+def _cleanup_preview_storage(directory: Path, *, ttl_seconds: int) -> None:
+    """Remove orphaned preview files left by an interrupted worker."""
+    cutoff = datetime.now().timestamp() - ttl_seconds
+    try:
+        candidates = list(directory.glob("*.json.gz"))
+    except OSError:
+        logger.warning("cme_preview_temp_scan_failed")
+        return
+    for path in candidates:
+        try:
+            if path.stat().st_mtime <= cutoff:
+                path.unlink(missing_ok=True)
+        except OSError:
+            logger.warning("cme_preview_temp_cleanup_failed")
+
+
+def _write_parsed_preview(path: Path, parsed: ParsedCmeBulletin) -> None:
+    # Write one contract at a time.  Building a second list of 4,397 model
+    # dictionaries here would briefly duplicate the parser's largest object
+    # graph and can exhaust a small Render worker.
+    with gzip.open(path, "wt", encoding="utf-8", compresslevel=6) as stream:
+        prefix = json.dumps(
+            {
+                "pages_total": parsed.pages_total,
+                "pages_processed": parsed.pages_processed,
+                "bulletin_date": (
+                    parsed.bulletin_date.isoformat()
+                    if parsed.bulletin_date
+                    else None
+                ),
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        stream.write(prefix[:-1])
+        stream.write(',"contracts":[')
+        for index, contract in enumerate(parsed.contracts):
+            if index:
+                stream.write(",")
+            contract_payload = contract.model_dump(mode="json")
+            contract_payload["raw_text"] = contract.raw_text[:200]
+            json.dump(
+                contract_payload,
+                stream,
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+            del contract_payload
+        stream.write('],"gold_pages":')
+        json.dump(parsed.gold_pages, stream, separators=(",", ":"))
+        stream.write(',"product_blocks":')
+        json.dump(parsed.product_blocks, stream, separators=(",", ":"))
+        stream.write(',"ignored_lines":')
+        stream.write(str(parsed.ignored_lines))
+        stream.write(',"failed_pages":')
+        json.dump(parsed.failed_pages, stream, separators=(",", ":"))
+        stream.write(',"expiration_labels":')
+        json.dump(parsed.expiration_labels, stream, separators=(",", ":"))
+        stream.write(',"unresolved_expiration_labels":')
+        json.dump(
+            parsed.unresolved_expiration_labels,
+            stream,
+            separators=(",", ":"),
+        )
+        stream.write("}")
+
+
+def _read_parsed_preview(path: Path) -> ParsedCmeBulletin:
+    try:
+        with gzip.open(path, "rt", encoding="utf-8") as stream:
+            payload = json.load(stream)
+    except (OSError, json.JSONDecodeError) as error:
+        raise CmeBulletinParseError(
+            "O preview temporário não está mais disponível."
+        ) from error
+    return ParsedCmeBulletin(
+        pages_total=int(payload["pages_total"]),
+        pages_processed=int(payload["pages_processed"]),
+        bulletin_date=(
+            datetime.fromisoformat(payload["bulletin_date"]).date()
+            if payload.get("bulletin_date")
+            else None
+        ),
+        contracts=tuple(
+            CmeBulletinContract.model_validate(contract)
+            for contract in payload["contracts"]
+        ),
+        gold_pages=tuple(payload["gold_pages"]),
+        product_blocks=tuple(
+            tuple(block) for block in payload["product_blocks"]
+        ),
+        ignored_lines=int(payload["ignored_lines"]),
+        failed_pages=tuple(payload["failed_pages"]),
+        expiration_labels=tuple(payload["expiration_labels"]),
+        unresolved_expiration_labels=tuple(
+            payload["unresolved_expiration_labels"]
+        ),
+    )
 
 
 class _PreviewCache:
@@ -94,7 +212,9 @@ class _PreviewCache:
             if entry.preview.expires_at <= now
         ]
         for preview_id in expired:
-            self._items.pop(preview_id, None)
+            entry = self._items.pop(preview_id, None)
+            if entry is not None:
+                _remove_preview_file(entry.parsed_path)
 
     def put(self, entry: _PreviewEntry) -> None:
         with self._lock:
@@ -102,7 +222,8 @@ class _PreviewCache:
             self._items[entry.preview.preview_id] = entry
             self._items.move_to_end(entry.preview.preview_id)
             while len(self._items) > self.maximum:
-                self._items.popitem(last=False)
+                _, removed = self._items.popitem(last=False)
+                _remove_preview_file(removed.parsed_path)
 
     def get(self, preview_id: str) -> _PreviewEntry:
         with self._lock:
@@ -116,7 +237,9 @@ class _PreviewCache:
 
     def discard(self, preview_id: str) -> None:
         with self._lock:
-            self._items.pop(preview_id, None)
+            entry = self._items.pop(preview_id, None)
+        if entry is not None:
+            _remove_preview_file(entry.parsed_path)
 
     def count(self) -> int:
         with self._lock:
@@ -155,8 +278,20 @@ class CmeBulletinService:
         )
         self.max_previews = max_previews or _positive_int(
             "CME_BULLETIN_MAX_PREVIEWS",
-            5,
+            2,
         )
+        self.preview_storage_dir = Path(
+            os.getenv(
+                "CME_BULLETIN_PREVIEW_DIR",
+                str(Path(tempfile.gettempdir()) / "xau_cme_previews"),
+            )
+        )
+        self.preview_storage_dir.mkdir(parents=True, exist_ok=True)
+        _cleanup_preview_storage(
+            self.preview_storage_dir,
+            ttl_seconds=self.preview_ttl_seconds,
+        )
+        self._processing_lock = Lock()
         self.parser = CmeBulletinParser(
             max_pages=self.max_pages,
             max_seconds=self.max_processing_seconds,
@@ -174,6 +309,23 @@ class CmeBulletinService:
         *,
         filename: str | None,
     ) -> CmeBulletinPreview:
+        if not self._processing_lock.acquire(blocking=False):
+            raise CmePreviewBusyError(
+                "Outro preview CME está sendo processado. Tente novamente."
+            )
+        try:
+            return self._preview(content, filename=filename)
+        finally:
+            self._processing_lock.release()
+
+    def _preview(
+        self,
+        content: bytes,
+        *,
+        filename: str | None,
+    ) -> CmeBulletinPreview:
+        started_at = datetime.now(UTC)
+        logger.info("cme_preview_started bytes=%s", len(content))
         safe_filename = _safe_filename(filename)
         if len(content) > self.max_file_bytes:
             raise CmeBulletinParseError(
@@ -184,6 +336,12 @@ class CmeBulletinService:
 
         file_hash = hashlib.sha256(content).hexdigest()
         parsed = self.parser.parse(content)
+        logger.info(
+            "cme_preview_parsed pages=%s contracts=%s elapsed_seconds=%.2f",
+            parsed.pages_total,
+            len(parsed.contracts),
+            (datetime.now(UTC) - started_at).total_seconds(),
+        )
         report = self.validator.validate(parsed)
         spot_alignment = align_spot(parsed.bulletin_date, None)
         eligibility = self.validator.eligibility(
@@ -201,6 +359,12 @@ class CmeBulletinService:
             file_hash,
             database_path=self.database_path,
         )
+        compact_sample = [
+            contract.model_copy(
+                update={"raw_text": contract.raw_text[:200]}
+            )
+            for contract in parsed.contracts[:20]
+        ]
         preview = CmeBulletinPreview(
             preview_id=secrets.token_urlsafe(24),
             expires_at=now + timedelta(seconds=self.preview_ttl_seconds),
@@ -212,9 +376,24 @@ class CmeBulletinService:
             report=report,
             eligibility=eligibility,
             spot_alignment=spot_alignment,
-            sample_contracts=list(parsed.contracts[:20]),
+            sample_contracts=compact_sample,
         )
-        self.cache.put(_PreviewEntry(preview=preview, parsed=parsed))
+        parsed_path = self.preview_storage_dir / f"{preview.preview_id}.json.gz"
+        try:
+            _write_parsed_preview(parsed_path, parsed)
+        except (OSError, MemoryError) as error:
+            _remove_preview_file(parsed_path)
+            raise CmeBulletinParseError(
+                "Não foi possível preparar o preview temporário."
+            ) from error
+        self.cache.put(
+            _PreviewEntry(preview=preview, parsed_path=parsed_path)
+        )
+        logger.info(
+            "cme_preview_completed contracts=%s elapsed_seconds=%.2f",
+            len(parsed.contracts),
+            (datetime.now(UTC) - started_at).total_seconds(),
+        )
         return preview
 
     @staticmethod
@@ -222,7 +401,22 @@ class CmeBulletinService:
         parsed: ParsedCmeBulletin,
     ) -> CmeOpenInterestAnalysis | None:
         records: list[dict[str, object]] = []
+        call_volume = 0.0
+        put_volume = 0.0
+        volume_total = 0.0
+        has_volume = False
+        call_oi_change = 0.0
+        put_oi_change = 0.0
+        has_oi_change = False
+        by_expiry: dict[str, dict[str, float | int | str | None]] = {}
         for contract in parsed.contracts:
+            if contract.volume is not None:
+                has_volume = True
+                volume_total += float(contract.volume)
+                if contract.option_type == "CALL":
+                    call_volume += float(contract.volume)
+                else:
+                    put_volume += float(contract.volume)
             if contract.open_interest is None:
                 continue
             previous_open_interest = None
@@ -240,6 +434,30 @@ class CmeBulletinService:
                     "previous_open_interest": previous_open_interest,
                 }
             )
+            if contract.open_interest_change is not None:
+                has_oi_change = True
+                if contract.option_type == "CALL":
+                    call_oi_change += float(contract.open_interest_change)
+                else:
+                    put_oi_change += float(contract.open_interest_change)
+            expiry = contract.expiration or contract.contract_month
+            bucket = by_expiry.setdefault(
+                expiry,
+                {
+                    "expiry": expiry,
+                    "call_oi": 0.0,
+                    "put_oi": 0.0,
+                    "total_oi": 0.0,
+                    "volume": 0.0,
+                    "contract_count": 0,
+                },
+            )
+            side = "call_oi" if contract.option_type == "CALL" else "put_oi"
+            bucket[side] = float(bucket[side]) + float(contract.open_interest)
+            bucket["total_oi"] = float(bucket["total_oi"]) + float(contract.open_interest)
+            bucket["contract_count"] = int(bucket["contract_count"]) + 1
+            if contract.volume is not None:
+                bucket["volume"] = float(bucket["volume"]) + float(contract.volume)
         if not records:
             return None
         engine = OpenInterestEngine(pd.DataFrame.from_records(records))
@@ -256,6 +474,8 @@ class CmeBulletinService:
             }
             for index, row in engine.by_strike().iterrows()
         ]
+        call_total = float(summary["call_oi_total"])
+        put_total = float(summary["put_oi_total"])
         return CmeOpenInterestAnalysis(
             call_oi_total=summary["call_oi_total"],
             put_oi_total=summary["put_oi_total"],
@@ -270,6 +490,37 @@ class CmeBulletinService:
             oi_concentration_score=summary["oi_concentration_score"],
             top_10_strikes=summary["top_10_strikes"],
             distribution_by_strike=distribution,
+            put_call_oi_ratio=(put_total / call_total if call_total else None),
+            volume_total=volume_total if has_volume else None,
+            call_volume_total=call_volume if has_volume else None,
+            put_volume_total=put_volume if has_volume else None,
+            put_call_volume_ratio=(
+                put_volume / call_volume
+                if has_volume and call_volume
+                else None
+            ),
+            call_oi_change=call_oi_change if has_oi_change else None,
+            put_oi_change=put_oi_change if has_oi_change else None,
+            net_oi_change=(
+                call_oi_change - put_oi_change
+                if has_oi_change
+                else None
+            ),
+            contract_count=len(parsed.contracts),
+            expiration_count=(
+                len(set(parsed.expiration_labels).difference(
+                    parsed.unresolved_expiration_labels
+                ))
+                or len({
+                    contract.expiration or contract.contract_month
+                    for contract in parsed.contracts
+                })
+            ),
+            distribution_by_expiry=sorted(
+                by_expiry.values(),
+                key=lambda item: float(item["total_oi"]),
+                reverse=True,
+            ),
         )
 
     def confirm(
@@ -281,7 +532,7 @@ class CmeBulletinService:
     ) -> CmeBulletinConfirmResponse:
         entry = self.cache.get(preview_id)
         preview = entry.preview
-        parsed = entry.parsed
+        parsed = _read_parsed_preview(entry.parsed_path)
         if preview.report.status in {"rejected", "incompatible"}:
             raise CmeBulletinParseError(
                 "O preview foi rejeitado e não pode ser confirmado."
